@@ -84,6 +84,17 @@ Tokens are issued and revoked in the backoffice (source page, "Issue token"): on
 shown once, never stored in clear. Authentication failures are logged without the token and rate limited;
 a refused source also opens an `auth_failure` incident (at most one every five minutes).
 
+**The API switch and the shared address budget.** The route is an `/api` route: while the Core `expose_api`
+setting is off (the default) it answers `403`, so an installation that receives machine data must turn the API on.
+The route is marked `SelfAuthenticatedApiRoute`: the source's bearer token is not read as a Laraplate API token, the
+request runs as the anonymous user, and `AuthenticateMachineSource` authenticates it, until the machine sources move
+to service accounts. Because of that, every ingest request is also counted against Core's per-address `api` rate limit
+(`core.api.rate_limit_per_minute`, 600 a minute, shared by all `/api` requests from the same client address), on top of
+the per-token `mes-machine-ingest` throttle (`mes.machine.rate_limit_per_minute`). Gateways or agents that sit behind
+one address (a factory NAT or a shared proxy) share that single per-address budget: raise
+`core.api.rate_limit_per_minute` if their combined rate can exceed it, or the surplus gets `429` whatever the
+per-token limit allows.
+
 ### The envelope
 
 ```json

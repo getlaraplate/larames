@@ -267,6 +267,11 @@ the foundation, with no consumer of the machine data yet.
   `MachineEnvelopeValidator`), then `MachineMessageInbox::accept()`, which stores the raw message through
   `IdempotentWriter` (insert-or-ignore on five drivers, a unique-violation fallback on Oracle), records
   `seq_gap` and `clock_skew` incidents and queues `ProcessMachineMessageJob`.
+- **Switch and authentication.** The route sits behind Core's `expose_api` switch (`403` while it is off, the default)
+  and is marked `SelfAuthenticatedApiRoute`: the bearer token is a source's, not a user's, so Core runs the request as
+  the anonymous user and `AuthenticateMachineSource` authenticates it (until the sources move to service accounts). Core's
+  per-address `api` rate limit (`core.api.rate_limit_per_minute`, 600 a minute, per client address) applies on top of the
+  per-token `mes-machine-ingest` throttle, so gateways behind one address share it.
 - **Job.** `ProcessMachineMessageJob` (queue `mes.machine.queue`, `WithoutOverlapping` keyed by source,
   3 tries) owns retries, status and the `message_failed` incident; the pipeline is
   `MachineMessageProcessor`: `NormalizerRegistry` (`canonical`, `mapped_json`), `SignalResolver` (one cached
