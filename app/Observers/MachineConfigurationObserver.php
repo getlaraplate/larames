@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Modules\MES\Observers;
 
-use Illuminate\Support\Facades\DB;
 use Modules\MES\Machine\SignalResolver;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineSignal;
@@ -54,6 +53,6 @@ final class MachineConfigurationObserver
      */
     private function forgetAfterCommit(int $source_id): void
     {
-        DB::afterCommit(fn () => $this->resolver->forget($source_id));
+        new MachineDevice()->getConnection()->afterCommit(fn () => $this->resolver->forget($source_id));
     }
 }
