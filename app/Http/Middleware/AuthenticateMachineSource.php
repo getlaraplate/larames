@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -12,13 +13,13 @@ use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Sanctum\PersonalAccessToken;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Machine\MachineIncidentRecorder;
-use Modules\MES\Machine\MachineSourceTokenService;
+use Modules\MES\Machine\MachineSourceResolver;
 use Modules\MES\Models\MachineSource;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Authenticates a machine source by the bearer token it was issued. The token identifies the source;
- * an unknown token, or one that is not a source's, is `401`; one that lacks the ingest ability or
+ * Authenticates a machine source by the bearer token of its service account. The token's account identifies
+ * the source; an unknown token, or one whose account speaks for no source, is `401`; one that lacks the ingest ability or
  * belongs to an inactive source is `403`; more than 30 failed attempts a minute from one address is `429`. Failures are logged without the token, and a source's failures become one
  * incident per five minutes, so a misconfigured agent cannot flood either.
  */
@@ -26,10 +27,16 @@ final class AuthenticateMachineSource
 {
     public const string REQUEST_ATTRIBUTE = 'machine_source';
 
+    /**
+     * The token ability the ingest requires until the route moves to the service account's `api` permissions.
+     */
+    public const string ABILITY = 'mes:machine-ingest';
+
     private const int MAX_FAILURES_PER_MINUTE = 30;
 
     public function __construct(
         private readonly MachineIncidentRecorder $incidents,
+        private readonly MachineSourceResolver $sources,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -42,7 +49,8 @@ final class AuthenticateMachineSource
 
         $plain = $request->bearerToken();
         $token = is_string($plain) && $plain !== '' ? PersonalAccessToken::findToken($plain) : null;
-        $source = $token?->tokenable;
+        $owner = $token?->tokenable;
+        $source = $owner instanceof Authenticatable ? $this->sources->forUser($owner) : null;
 
         if ($token === null || ! $source instanceof MachineSource) {
             RateLimiter::hit($address_key, 60);
@@ -51,8 +59,8 @@ final class AuthenticateMachineSource
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        if (! $token->can(MachineSourceTokenService::ABILITY) || ! $source->is_active) {
-            $this->recordRefusal($source, $token->can(MachineSourceTokenService::ABILITY) ? 'inactive_source' : 'missing_ability');
+        if (! $token->can(self::ABILITY) || ! $source->is_active) {
+            $this->recordRefusal($source, $token->can(self::ABILITY) ? 'inactive_source' : 'missing_ability');
 
             return response()->json(['message' => 'Forbidden.'], 403);
         }

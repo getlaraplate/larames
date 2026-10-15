@@ -5,10 +5,11 @@ declare(strict_types=1);
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
 use Modules\Core\Models\Role;
 use Modules\Core\Models\User;
+use Modules\MES\Enums\MachineIncidentType;
+use Modules\MES\Enums\MachineMessageStatus;
 use Modules\MES\Filament\Resources\MachineDevices\Pages\EditMachineDevice;
 use Modules\MES\Filament\Resources\MachineDevices\Pages\ListMachineDevices;
 use Modules\MES\Filament\Resources\MachineDevices\RelationManagers\SignalsRelationManager;
@@ -21,8 +22,6 @@ use Modules\MES\Filament\Resources\MachineSources\Pages\EditMachineSource;
 use Modules\MES\Filament\Resources\MachineSources\Pages\ListMachineSources;
 use Modules\MES\Filament\Resources\UnmappedSignals\Pages\ListUnmappedSignals;
 use Modules\MES\Machine\MachineProfileService;
-use Modules\MES\Enums\MachineIncidentType;
-use Modules\MES\Enums\MachineMessageStatus;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineMessage;
@@ -41,6 +40,7 @@ beforeEach(function (): void {
 
     $company = MesTestHelpers::makeCompany();
     $this->company = $company;
+
     /** @var App\Models\User $superadmin */
     $superadmin = App\Models\User::query()->create(User::factory()->raw());
     $superadmin->assignRole(Role::findOrCreate(config('permission.roles.superadmin'), 'web'));
@@ -70,33 +70,11 @@ it('creates a source from its form', function (): void {
     expect(MachineSource::query()->where('code', 'gw-9')->exists())->toBeTrue();
 });
 
-it('issues a token once and revokes it', function (): void {
-    $source = MachineSource::factory()->create();
-
-    $page = Livewire::test(EditMachineSource::class, ['record' => $source->getKey()])->callAction('issue_token');
-    // Read the notification before assertNotified() claims it.
-    $plain = collect(session('filament.claimed_notifications', []))->pluck('body')->filter()->implode(' ');
-    $page->assertNotified();
-    $stored = DB::table('personal_access_tokens')->value('token');
-
-    expect($source->tokens()->count())->toBe(1)
-        ->and($plain)->toMatch('/\d+\|[A-Za-z0-9]{20,}/')
-        ->and($plain)->not->toContain((string) $stored);
-
-    Livewire::test(EditMachineSource::class, ['record' => $source->getKey()])
-        ->callAction('revoke_token')
-        ->assertNotified();
-
-    expect($source->tokens()->count())->toBe(0);
-});
-
-it('hides the token actions from a user without the permission', function (): void {
+it('hides the source actions from a user without the permission', function (): void {
     $source = MachineSource::factory()->create();
     $this->actingAs(User::factory()->create());
 
     Livewire::test(EditMachineSource::class, ['record' => $source->getKey()])
-        ->assertActionHidden('issue_token')
-        ->assertActionHidden('revoke_token')
         ->assertActionHidden('reprocess_range');
 });
 

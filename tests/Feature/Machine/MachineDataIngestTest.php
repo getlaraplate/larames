@@ -5,10 +5,11 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Modules\Core\Models\User;
 use Modules\Core\Support\CrudApiExposure;
 use Modules\MES\Enums\MachineIncidentType;
+use Modules\MES\Http\Middleware\AuthenticateMachineSource;
 use Modules\MES\Jobs\ProcessMachineMessageJob;
-use Modules\MES\Machine\MachineSourceTokenService;
 use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineMessage;
 use Modules\MES\Models\MachineSource;
@@ -44,11 +45,15 @@ function ingest(array $envelope, ?string $token): Illuminate\Testing\TestRespons
     return test()->postJson(route('mes.api.machine-data.ingest'), $envelope, $headers);
 }
 
-function sourceWithToken(array $attributes = []): array
+/**
+ * A source linked to a service account, and a token of that account with the given abilities.
+ */
+function sourceWithToken(array $attributes = [], array $abilities = [AuthenticateMachineSource::ABILITY]): array
 {
-    $source = MachineSource::factory()->create($attributes);
+    $account = User::factory()->serviceAccount()->create();
+    $source = MachineSource::factory()->create([...$attributes, 'user_id' => $account->id]);
 
-    return [$source, resolve(MachineSourceTokenService::class)->issue($source)];
+    return [$source, $account->createToken('machine-ingest', $abilities)->plainTextToken];
 }
 
 it('serves the documented path and route name', function (): void {
@@ -82,8 +87,7 @@ it('refuses a missing or unknown token with 401', function (?string $token): voi
 ]);
 
 it('refuses a token without the ingest ability, or of an inactive source, with 403', function (): void {
-    $source = MachineSource::factory()->create();
-    $other_ability = $source->createToken('t', ['something:else'])->plainTextToken;
+    [, $other_ability] = sourceWithToken(abilities: ['something:else']);
     ingest(ingestEnvelope(), $other_ability)->assertForbidden();
 
     [, $inactive_token] = sourceWithToken(['code' => 'off', 'is_active' => false]);
@@ -160,17 +164,26 @@ it('keeps tokens and payloads out of the logs', function (): void {
         && ! str_contains($message . json_encode($context), 'secret-payload'));
 });
 
-it('lets a source hold one token at a time', function (): void {
-    $source = MachineSource::factory()->create();
-    $service = resolve(MachineSourceTokenService::class);
-    $first = $service->issue($source);
-    $second = $service->issue($source);
+it('stops accepting a token revoked on its service account', function (): void {
+    [$source, $token] = sourceWithToken();
+    ingest(ingestEnvelope('a'), $token)->assertStatus(202);
 
-    expect($source->tokens()->count())->toBe(1);
-    ingest(ingestEnvelope('a'), $first)->assertUnauthorized();
-    ingest(ingestEnvelope('b'), $second)->assertStatus(202);
-    expect($service->revoke($source))->toBe(1);
-    ingest(ingestEnvelope('c'), $second)->assertUnauthorized();
+    $source->serviceAccount?->tokens()->delete();
+
+    ingest(ingestEnvelope('b'), $token)->assertUnauthorized();
+});
+
+it('refuses the token of a user that speaks for no source with 401', function (): void {
+    $regular = User::factory()->create();
+    MachineSource::factory()->create();
+    MachineSource::query()->withoutGlobalScopes()->toBase()->update(['user_id' => $regular->id]);
+    $regular_token = $regular->createToken('t', [AuthenticateMachineSource::ABILITY])->plainTextToken;
+    $unlinked_token = User::factory()->serviceAccount()->create()->createToken('t', [AuthenticateMachineSource::ABILITY])->plainTextToken;
+
+    ingest(ingestEnvelope('a'), $regular_token)->assertUnauthorized();
+    ingest(ingestEnvelope('b'), $unlinked_token)->assertUnauthorized();
+
+    expect(MachineMessage::query()->count())->toBe(0);
 });
 
 it('limits failed authentications per address', function (): void {

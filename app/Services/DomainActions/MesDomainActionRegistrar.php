@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace Modules\MES\Services\DomainActions;
 
 use Illuminate\Database\Eloquent\Model;
-use InvalidArgumentException;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 use Modules\Core\Models\User;
 use Modules\Core\Services\Crud\DomainActionRegistry;
 use Modules\MES\Enums\DowntimeCause;
 use Modules\MES\Enums\NonConformanceDisposition;
-use Modules\MES\Models\Bom;
-use Modules\MES\Models\Downtime;
 use Modules\MES\Machine\MachineMessageReprocessor;
 use Modules\MES\Machine\MachineProfileService;
-use Modules\MES\Machine\MachineSourceTokenService;
+use Modules\MES\Models\Bom;
+use Modules\MES\Models\Downtime;
 use Modules\MES\Models\LotNumber;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineMessage;
@@ -75,8 +74,6 @@ final class MesDomainActionRegistrar
         $registry->register(MachineMessage::class, 'reprocess', static fn (Model $record, array $payload, User $user): Model => resolve(MachineMessageReprocessor::class)->reprocess(self::machineMessage($record)));
         $registry->register(MachineDevice::class, 'apply_profile', static fn (Model $record, array $payload, User $user): Model => resolve(MachineProfileService::class)->apply(self::machineDevice($record), MachineProfile::query()->findOrFail((int) $payload['profile_id'])));
         $registry->register(MachineProfile::class, 'export', static fn (Model $record, array $payload, User $user): array => ['json' => resolve(MachineProfileService::class)->export(self::machineProfile($record))]);
-        $registry->register(MachineSource::class, 'issue_token', static fn (Model $record, array $payload, User $user): array => ['token' => resolve(MachineSourceTokenService::class)->issue(self::machineSource($record))]);
-        $registry->register(MachineSource::class, 'revoke_token', static fn (Model $record, array $payload, User $user): array => ['revoked' => resolve(MachineSourceTokenService::class)->revoke(self::machineSource($record))]);
         $registry->register(MachineSource::class, 'reprocess_range', static fn (Model $record, array $payload, User $user): array => ['reprocessed' => resolve(MachineMessageReprocessor::class)->reprocessRange(self::machineSource($record), Carbon::parse((string) $payload['from']), Carbon::parse((string) $payload['to']))]);
         $registry->register(Downtime::class, 'close', static fn (Model $record, array $payload, User $user): Model => resolve(DowntimeService::class)->close($record));
 

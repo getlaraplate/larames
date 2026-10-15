@@ -5,13 +5,12 @@ declare(strict_types=1);
 namespace Modules\MES\Models;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Laravel\Sanctum\HasApiTokens;
-use Laravel\Sanctum\PersonalAccessToken;
-use Laravel\Sanctum\Sanctum;
+use Modules\Core\Enums\CoreTables;
+use Modules\Core\Models\User;
 use Modules\Core\Overrides\Model;
 use Modules\ERP\Concerns\BelongsToCompany;
 use Modules\ERP\Enums\ERPTables;
@@ -24,6 +23,7 @@ use Override;
 /**
  * @property int $id
  * @property int|null $company_id
+ * @property int|null $user_id
  * @property string $code
  * @property string $name
  * @property string $normalizer
@@ -38,7 +38,7 @@ use Override;
  */
 final class MachineSource extends Model
 {
-    use BelongsToCompany, HasApiTokens;
+    use BelongsToCompany;
 
     /**
      * @var string
@@ -52,6 +52,7 @@ final class MachineSource extends Model
     #[Override]
     protected $fillable = [
         'company_id',
+        'user_id',
         'code',
         'name',
         'normalizer',
@@ -91,9 +92,17 @@ final class MachineSource extends Model
         $unique = $this->company_id === null ? [] : [
             Rule::unique(MESTables::MachineSources->value, 'code')->where('company_id', $this->company_id)->ignore($this->getKey()),
         ];
+        // A source authenticates as one service account, and a service account speaks for one source only.
+        $service_account = [
+            'nullable',
+            'integer',
+            Rule::exists(CoreTables::Users->value, 'id')->where('is_service_account', true),
+            Rule::unique(MESTables::MachineSources->value, 'user_id')->ignore($this->getKey()),
+        ];
 
         $rules['create'] = array_merge($rules['create'], [
             'company_id' => ['required', 'integer', 'exists:' . ERPTables::Companies->value . ',id'],
+            'user_id' => $service_account,
             'code' => ['required', 'string', 'max:64', ...$unique],
             'name' => ['required', 'string', 'max:255'],
             'normalizer' => ['sometimes', 'string', 'max:64'],
@@ -105,6 +114,7 @@ final class MachineSource extends Model
         ]);
 
         $rules['update'] = array_merge($rules['update'], [
+            'user_id' => $service_account,
             'code' => ['sometimes', 'string', 'max:64', ...$unique],
             'name' => ['sometimes', 'string', 'max:255'],
             'normalizer' => ['sometimes', 'string', 'max:64'],
@@ -134,14 +144,14 @@ final class MachineSource extends Model
     }
 
     /**
-     * The ingest tokens of the source. Declared with its relation type, which Sanctum leaves to PHPDoc: a
-     * relation a request names is called only when its declaration says it returns a relation.
+     * The service account the source's agent authenticates as. Its tokens and `api` permissions are managed on
+     * the user; the source holds no credential of its own.
      *
-     * @return MorphMany<PersonalAccessToken, $this>
+     * @return BelongsTo<User, $this>
      */
-    public function tokens(): MorphMany
+    public function serviceAccount(): BelongsTo
     {
-        return $this->morphMany(Sanctum::$personalAccessTokenModel, 'tokenable');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**

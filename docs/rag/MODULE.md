@@ -260,7 +260,8 @@ User guide and protocol: `docs/MACHINE_CONNECTIVITY.md`. Step 1 of the machine d
 the foundation, with no consumer of the machine data yet.
 
 - **Ingress.** `POST api/v1/mes/machine-data` (`mes.api.machine-data.ingest`):
-  `AuthenticateMachineSource` (bearer token of a `MachineSource`, ability `mes:machine-ingest`; 401 unknown,
+  `AuthenticateMachineSource` (bearer token of the source's service account, resolved by `MachineSourceResolver`,
+  ability `mes:machine-ingest`; 401 unknown or a user that speaks for no source,
   403 missing ability, inactive source, or not an http canonical source), a per-token throttle
   (`mes.machine.rate_limit_per_minute`; Redis-backed, and the throttle runs before the source is known, so
   it keys on the token), `MachineDataIngestController` (413 body or sample limits, 422
@@ -286,9 +287,11 @@ the foundation, with no consumer of the machine data yet.
   `mes:machine-watchdog` (every minute: `device_silent` incidents), `MachineIncidentRecorder` and the
   `NotifyMachineIncident` listener (`mes.notifications.machine_incident`), `MachineProfileService` (apply,
   import, export; `MachineSignal::rulesForRole()` validates a signal's config by role),
-  `UnmappedSignalMapper`, `MachineSourceTokenService` (one token per source, shown once).
-- **Domain actions** (`MESPermissions`): `MachineMessage` `reprocess`; `MachineSource` `issue_token`,
-  `revoke_token`, `reprocess_range`; `MachineDevice` `apply_profile`; `MachineProfile` `export`.
+  `UnmappedSignalMapper`, `MachineSourceResolver` (the source of a service account: `mes_machine_sources.user_id`,
+  nullable and unique, only users with `is_service_account`; soft-deleted sources never resolve).
+- **Domain actions** (`MESPermissions`): `MachineMessage` `reprocess`; `MachineSource` `reprocess_range`;
+  `MachineDevice` `apply_profile`; `MachineProfile` `export`. Tokens are managed on the service account (Core user
+  resource), not on the source.
 - **MQTT (step 2).** `php artisan mes:machine-bridge` (`MachineBridgeCommand` over `MachineBridge`): connects
   through `MachineMessageSubscriber` (`PhpMqttSubscriber`, php-mqtt/client, MQTT 3.1.1, QoS 1, persistent
   session under `mes.machine.mqtt.client_id`), subscribes to `MqttMessageRouter::subscriptions()` (the

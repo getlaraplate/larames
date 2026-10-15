@@ -92,15 +92,6 @@ it('accepts a valid configuration for every role', function (): void {
     }
 });
 
-it('lets a source issue a Sanctum token', function (): void {
-    $source = MachineSource::factory()->create();
-
-    $token = $source->createToken('t', ['mes:machine-ingest'])->plainTextToken;
-
-    expect($token)->not->toBe('')
-        ->and($source->tokens()->count())->toBe(1);
-});
-
 it('queries and soft deletes the configuration models through Eloquent', function (): void {
     $signal = MachineSignal::factory()->create();
 

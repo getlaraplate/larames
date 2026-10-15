@@ -31,7 +31,8 @@ backoffice.
 ## Sources, devices, signals
 
 - A **machine source** is whatever sends data (our edge agent or a customer gateway). It has a `normalizer`
-  (`canonical` or `mapped_json`), a `transport` (`http` or `mqtt`), a heartbeat timeout and a token.
+  (`canonical` or `mapped_json`), a `transport` (`http` or `mqtt`), a heartbeat timeout and the service account
+  its agent authenticates as (one source per service account; only users marked as service accounts qualify).
 - A **machine device** is a physical machine as the source names it (`external_id`), tied to a work center.
 - A **machine signal** is one tag of a device with a **role**: `state`, `alarm`, `good_count`, `scrap_count`,
   `total_count`, `measurement`, `process_value`, `order_reference`, `operation_reference`. The role decides
@@ -68,7 +69,7 @@ states, which a profile sets as its `state_map`:
 ## The HTTP endpoint
 
 `POST api/v1/mes/machine-data`, route name `mes.api.machine-data.ingest`. The source authenticates with
-its bearer token (Sanctum, ability `mes:machine-ingest`); the URL carries no source id. Use TLS.
+the bearer token of its service account (Sanctum, ability `mes:machine-ingest`); the URL carries no source id. Use TLS.
 
 | Response | Meaning | Agent behaviour |
 |---|---|---|
@@ -80,8 +81,9 @@ its bearer token (Sanctum, ability `mes:machine-ingest`); the URL carries no sou
 | `422` | invalid envelope; the schema errors are returned | drop, log locally |
 | `429` / `5xx` / network error | temporary | retry with backoff, honour `Retry-After` |
 
-Tokens are issued and revoked in the backoffice (source page, "Issue token"): one token per source,
-shown once, never stored in clear. Authentication failures are logged without the token and rate limited;
+Tokens belong to the source's service account: they are issued and revoked on the user page of the backoffice
+(API tokens), shown once, never stored in clear. A token of a user that is not a source's service account is
+refused like an unknown one. Authentication failures are logged without the token and rate limited;
 a refused source also opens an `auth_failure` incident (at most one every five minutes).
 
 **The API switch and the shared address budget.** The route is an `/api` route: while the Core `expose_api`
@@ -476,5 +478,5 @@ which closes when it is heard again (and the synthetic `Offline` interval with i
 - Reprocessing: per message, or for a range of a source, from the backoffice. A reprocess never inflates
   the unmapped signal counters.
 - Permissions: the CRUD permissions of the machine tables, plus the domain actions `reprocess` (messages),
-  `issue_token`, `revoke_token`, `reprocess_range` (sources), `apply_profile` (devices) and `export`
+  `reprocess_range` (sources), `apply_profile` (devices) and `export`
   (profiles).

@@ -39,8 +39,6 @@ it('registers every MES domain action without collision', function (): void {
         [MachineMessage::class, 'reprocess'],
         [MachineDevice::class, 'apply_profile'],
         [MachineProfile::class, 'export'],
-        [MachineSource::class, 'issue_token'],
-        [MachineSource::class, 'revoke_token'],
         [MachineSource::class, 'reprocess_range'],
         [Downtime::class, 'close'],
         [Bom::class, 'explode'],

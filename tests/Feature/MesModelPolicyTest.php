@@ -17,13 +17,13 @@ use Modules\MES\Enums\ProductionOrderStatus;
 use Modules\MES\Models\Bom;
 use Modules\MES\Models\Downtime;
 use Modules\MES\Models\LotNumber;
-use Modules\MES\Models\NonConformance;
-use Modules\MES\Models\ProductionOrder;
-use Modules\MES\Models\ProductionOrderOperation;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineMessage;
 use Modules\MES\Models\MachineProfile;
 use Modules\MES\Models\MachineSource;
+use Modules\MES\Models\NonConformance;
+use Modules\MES\Models\ProductionOrder;
+use Modules\MES\Models\ProductionOrderOperation;
 use Modules\MES\Models\QualityCheck;
 use Modules\MES\Models\WorkCenter;
 use Modules\MES\Policies\MesModelPolicy;
@@ -74,8 +74,6 @@ it('lets a superadmin act only when the record state allows it', function (strin
     }],
     'cancel an in-progress order, not a completed one' => ['cancel', fn () => ProductionOrder::factory()->create(['status' => ProductionOrderStatus::InProgress->value]), fn () => ProductionOrder::factory()->create(['status' => ProductionOrderStatus::Completed->value])],
     'reprocess a machine message, not another record' => ['reprocess', fn () => MachineMessage::factory()->create(), fn () => Bom::factory()->create()],
-    'issue a source token, not for an inactive source' => ['issueToken', fn () => MachineSource::factory()->create(), fn () => MachineSource::factory()->inactive()->create()],
-    'revoke a source token, not on another record' => ['revokeToken', fn () => MachineSource::factory()->create(), fn () => Bom::factory()->create()],
     'reprocess a range of a source, not of another record' => ['reprocessRange', fn () => MachineSource::factory()->create(), fn () => Bom::factory()->create()],
     'apply a profile to a device, not to another record' => ['applyProfile', fn () => MachineDevice::factory()->create(), fn () => Bom::factory()->create()],
     'export a profile, not another record' => ['export', fn () => MachineProfile::factory()->create(), fn () => Bom::factory()->create()],

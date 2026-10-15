@@ -34,7 +34,7 @@ final class MESPermissions implements DeclaresPermissions
             MachineDevice::class => ['apply_profile'],
             MachineMessage::class => ['reprocess'],
             MachineProfile::class => ['export'],
-            MachineSource::class => ['issue_token', 'revoke_token', 'reprocess_range'],
+            MachineSource::class => ['reprocess_range'],
             NonConformance::class => ['resolve', 'close'],
             ProductionOrder::class => ['release', 'complete', 'cancel', 'record_consumption'],
             ProductionOrderOperation::class => ['start', 'complete', 'skip'],

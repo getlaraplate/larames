@@ -8,10 +8,14 @@ use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\Rule;
+use Modules\Core\Enums\CoreTables;
+use Modules\Core\Filament\Utils\HasForm;
+use Modules\Core\Models\User;
 use Modules\MES\Enums\MachineTransport;
 use Modules\MES\Machine\Normalizers\NormalizerRegistry;
-use Filament\Schemas\Schema;
-use Modules\Core\Filament\Utils\HasForm;
 
 final class MachineSourceForm
 {
@@ -28,6 +32,15 @@ final class MachineSourceForm
                     ->searchable()
                     ->preload()
                     ->required(),
+                Select::make('user_id')
+                    ->label('Service account')
+                    ->relationship('serviceAccount', 'name', self::onlyServiceAccounts(...))
+                    ->rules([Rule::exists(CoreTables::Users->value, 'id')->where('is_service_account', true)])
+                    ->unique(ignoreRecord: true)
+                    ->helperText('The account the edge agent authenticates as. Issue its token, with the api role and allowed addresses, from the user page.')
+                    ->searchable()
+                    ->preload()
+                    ->nullable(),
                 TextInput::make('code')
                     ->required()
                     ->maxLength(64),
@@ -45,7 +58,7 @@ final class MachineSourceForm
                     ->required(),
                 TextInput::make('mqtt_topic')
                     ->maxLength(255)
-                    ->visible(static fn ($get): bool => $get('transport') === MachineTransport::Mqtt->value),
+                    ->visible(static fn ($get): bool => MachineTransport::Mqtt->value === $get('transport')),
                 KeyValue::make('normalizer_options')
                     ->helperText('Paths for the mapped_json normaliser (device, signal, timestamp, value, ...).'),
                 TextInput::make('heartbeat_timeout_seconds')
@@ -56,5 +69,19 @@ final class MachineSourceForm
                 Toggle::make('is_active')
                     ->default(true),
             ]);
+    }
+
+    /**
+     * The users a source may authenticate as. The condition goes on the base query: `is_service_account` comes from a
+     * Core module migration, which the static analyser's schema of the users table does not read.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
+     */
+    private static function onlyServiceAccounts(Builder $query): Builder
+    {
+        $query->getQuery()->where($query->getModel()->qualifyColumn('is_service_account'), true);
+
+        return $query;
     }
 }

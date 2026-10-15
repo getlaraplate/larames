@@ -99,16 +99,6 @@ final class MesModelPolicy
         return $this->allowsDomainAction($user, $record, 'reprocess', static fn (Model $record): bool => $record instanceof MachineMessage);
     }
 
-    public function issueToken(User $user, Model $record): bool
-    {
-        return $this->allowsDomainAction($user, $record, 'issue_token', static fn (Model $record): bool => $record instanceof MachineSource && $record->is_active);
-    }
-
-    public function revokeToken(User $user, Model $record): bool
-    {
-        return $this->allowsDomainAction($user, $record, 'revoke_token', static fn (Model $record): bool => $record instanceof MachineSource);
-    }
-
     public function reprocessRange(User $user, Model $record): bool
     {
         return $this->allowsDomainAction($user, $record, 'reprocess_range', static fn (Model $record): bool => $record instanceof MachineSource);
