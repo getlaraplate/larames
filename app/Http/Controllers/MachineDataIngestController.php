@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use JsonException;
+use LogicException;
 use Modules\MES\Enums\MachineTransport;
 use Modules\MES\Http\Middleware\ResolveMachineSource;
 use Modules\MES\Machine\MachineMessageInbox;
@@ -25,7 +26,7 @@ final class MachineDataIngestController extends Controller
         $source = $request->attributes->get(ResolveMachineSource::REQUEST_ATTRIBUTE);
 
         if (! $source instanceof MachineSource) {
-            return response()->json(['message' => 'Unauthenticated.'], 401);
+            throw new LogicException('The ingest route runs without ' . ResolveMachineSource::class . ', which resolves its source.');
         }
 
         if ($source->transport !== MachineTransport::Http || $source->normalizer !== 'canonical') {

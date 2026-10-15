@@ -7,9 +7,11 @@ namespace Modules\MES\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\MassPrunable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Core\Contracts\RestrictsCrudWrites;
+use Modules\Core\Models\Concerns\DeniesGenericCrudWrites;
 use Modules\ERP\Concerns\BelongsToCompany;
 use Modules\MES\Database\Factories\MachineMessageFactory;
 use Modules\MES\Enums\MachineMessageStatus;
@@ -29,11 +31,15 @@ use Override;
  * @property ?string $error
  * @property int $attempts
  * @property ?\Illuminate\Support\Carbon $processed_at
+ *
+ * Written only by the ingest (HTTP route and MQTT bridge) and the processing pipeline: the generic CRUD refuses every
+ * write, so the `insert` permission the machine agents hold opens the ingest route alone, never Core's
+ * `insert/{module}/{entity}` under another spelling of the path.
  */
-final class MachineMessage extends Model
+final class MachineMessage extends Model implements RestrictsCrudWrites
 {
     /** @use HasFactory<MachineMessageFactory> */
-    use BelongsToCompany, HasFactory, MassPrunable;
+    use BelongsToCompany, DeniesGenericCrudWrites, HasFactory, MassPrunable;
 
     /**
      * @var string

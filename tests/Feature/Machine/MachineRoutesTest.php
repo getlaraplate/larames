@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Routing\Middleware\ThrottleRequestsWithRedis;
 use Illuminate\Support\Facades\Route;
 use Modules\Core\Http\Middleware\SelfAuthenticatedApiRoute;
 use Modules\Core\Support\CrudApiExposure;
@@ -38,6 +40,13 @@ it('authenticates through the API middleware and resolves the source by the inge
 
     expect($middleware)->toContain(ResolveMachineSource::class . ':' . MachineMessage::class . ',insert')
         ->and($middleware)->not->toContain(SelfAuthenticatedApiRoute::class);
+});
+
+it('counts the ingest limit in the cache store under the test runner, never in Redis', function (): void {
+    $middleware = Route::gatherRouteMiddleware(Route::getRoutes()->getByName('mes.api.machine-messages.insert'));
+
+    expect($middleware)->toContain(ThrottleRequests::class . ':mes-machine-ingest')
+        ->and($middleware)->not->toContain(ThrottleRequestsWithRedis::class . ':mes-machine-ingest');
 });
 
 it('no longer serves the old ingest path', function (): void {

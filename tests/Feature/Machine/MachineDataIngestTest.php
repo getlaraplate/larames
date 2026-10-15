@@ -5,7 +5,6 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
-use Illuminate\Support\Facades\Redis;
 use Modules\Core\Models\Permission;
 use Modules\Core\Models\Role;
 use Modules\Core\Models\User;
@@ -14,6 +13,7 @@ use Modules\Core\Support\CrudApiExposure;
 use Modules\Core\Support\PermissionName;
 use Modules\MES\Database\Seeders\MESDatabaseSeeder;
 use Modules\MES\Enums\MachineIncidentType;
+use Modules\MES\Http\Middleware\ResolveMachineSource;
 use Modules\MES\Jobs\ProcessMachineMessageJob;
 use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineMessage;
@@ -147,13 +147,19 @@ it('refuses a token used from outside its allowed networks with 403', function (
     expect(MachineMessage::query()->count())->toBe(0);
 });
 
-it('refuses the token once the role no longer holds the ingest permission with 403', function (): void {
-    [, $token] = sourceWithToken();
+it('refuses the token once the role no longer holds the ingest permission with 403 and one incident', function (): void {
+    [$source, $token] = sourceWithToken();
     machineAgentRole()->revokePermissionTo(machineIngestPermission());
 
-    ingest(ingestEnvelope(), $token)->assertForbidden();
+    ingest(ingestEnvelope('a'), $token)->assertForbidden();
+    ingest(ingestEnvelope('b'), $token)->assertForbidden();
 
-    expect(MachineMessage::query()->count())->toBe(0);
+    $incidents = MachineIncident::query()->where('source_id', $source->id)->get();
+
+    expect(MachineMessage::query()->count())->toBe(0)
+        ->and($incidents)->toHaveCount(1)
+        ->and($incidents->sole()->type)->toBe(MachineIncidentType::AuthFailure)
+        ->and($incidents->sole()->detail)->toBe(['reason' => ResolveMachineSource::REASON_MISSING_PERMISSION]);
 });
 
 it('refuses the token of a regular user holding the ingest permission with 403 and stores nothing', function (): void {
@@ -167,6 +173,31 @@ it('refuses the token of a regular user holding the ingest permission with 403 a
 
     expect(MachineMessage::query()->count())->toBe(0)
         ->and(MachineIncident::query()->count())->toBe(0);
+});
+
+it('refuses the agent token on the generic CRUD insert under another spelling of the path with 403', function (string $uri): void {
+    [$source, $token] = sourceWithToken();
+    $row = ['company_id' => $source->company_id, 'source_id' => $source->id, 'message_id' => 'forged', 'transport' => 'http', 'payload' => '{}', 'received_at' => now()->toIso8601String(), 'status' => 'pending', 'attempts' => 0];
+
+    test()->postJson($uri, $row, ['Authorization' => "Bearer {$token}"])->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0);
+    ingest(ingestEnvelope(), $token)->assertStatus(202);
+})->with([
+    'upper-case module' => ['/api/v1/insert/MES/machine-messages'],
+    'mixed-case module' => ['/api/v1/insert/Mes/machine-messages'],
+    'table-style entity' => ['/api/v1/insert/mes/machine_messages'],
+]);
+
+it('refuses a superadmin token with 401 through the API authentication', function (): void {
+    config()->set('permission.roles.superadmin', 'superadmin');
+    $superadmin = app(ApiTokenService::class)->tokenable(User::factory()->create());
+    $superadmin->assignRole(Role::findOrCreate('superadmin', 'web'));
+    $token = $superadmin->fresh()->createToken('t', [PermissionName::forClass(MachineMessage::class, 'insert')])->plainTextToken;
+
+    ingest(ingestEnvelope(), $token)->assertUnauthorized();
+
+    expect(MachineMessage::query()->count())->toBe(0);
 });
 
 it('refuses a service account that speaks for no source with 403', function (): void {
@@ -192,10 +223,10 @@ it('refuses an inactive source with 403 and records one authentication failure f
     expect(MachineMessage::query()->count())->toBe(0)
         ->and($incidents)->toHaveCount(1)
         ->and($incidents->sole()->type)->toBe(MachineIncidentType::AuthFailure)
-        ->and($incidents->sole()->detail)->toBe(['reason' => 'inactive_source']);
+        ->and($incidents->sole()->detail)->toBe(['reason' => ResolveMachineSource::REASON_INACTIVE_SOURCE]);
 });
 
-it('refuses a soft-deleted source with 403 and records at most one authentication failure', function (): void {
+it('refuses a soft-deleted source with 403 and records no incident, having no source to attach it to', function (): void {
     [$source, $token] = sourceWithToken();
     $source->delete();
 
@@ -203,7 +234,7 @@ it('refuses a soft-deleted source with 403 and records at most one authenticatio
     ingest(ingestEnvelope('b'), $token)->assertForbidden();
 
     expect(MachineMessage::query()->count())->toBe(0)
-        ->and(MachineIncident::query()->where('source_id', $source->id)->count())->toBeLessThanOrEqual(1);
+        ->and(MachineIncident::query()->where('source_id', $source->id)->count())->toBe(0);
 });
 
 it('refuses a source that is not an http canonical source with 403', function (array $attributes): void {
@@ -248,8 +279,6 @@ it('limits requests per service account and says when to retry', function (): vo
     $tokens = app(ApiTokenService::class);
     $account = $tokens->tokenable($source->serviceAccount);
     $second_token = $tokens->issue($account, 'second', $tokens->grantableAbilities($account), null, null)->plainTextToken;
-    // The limiter counts in Redis, which outlives the test database: an earlier test may have spent this id's budget.
-    Redis::connection()->del(md5('mes-machine-ingest' . 'user:' . $account->id));
 
     ingest(ingestEnvelope('a'), $token)->assertStatus(202);
     ingest(ingestEnvelope('b'), $second_token)->assertStatus(202);

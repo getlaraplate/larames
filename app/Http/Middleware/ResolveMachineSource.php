@@ -35,6 +35,16 @@ final readonly class ResolveMachineSource
 {
     public const string REQUEST_ATTRIBUTE = 'machine_source';
 
+    /**
+     * `auth_failure` reason: the caller's source exists, but its role or token lacks the route's permission.
+     */
+    public const string REASON_MISSING_PERMISSION = 'missing_permission';
+
+    /**
+     * `auth_failure` reason: the caller's source is inactive.
+     */
+    public const string REASON_INACTIVE_SOURCE = 'inactive_source';
+
     private const int INCIDENT_INTERVAL_SECONDS = 300;
 
     private const int LOG_INTERVAL_SECONDS = 60;
@@ -66,7 +76,7 @@ final readonly class ResolveMachineSource
             $status = self::authorizationFailureStatus($request);
 
             if ($source instanceof MachineSource) {
-                $this->recordRefusal($source, 'missing_permission');
+                $this->recordRefusal($source, self::REASON_MISSING_PERMISSION);
             }
 
             return $status === Response::HTTP_UNAUTHORIZED
@@ -81,7 +91,7 @@ final readonly class ResolveMachineSource
         }
 
         if (! $source->is_active) {
-            $this->recordRefusal($source, 'inactive_source');
+            $this->recordRefusal($source, self::REASON_INACTIVE_SOURCE);
 
             return response()->json(['message' => 'Forbidden.'], Response::HTTP_FORBIDDEN);
         }
