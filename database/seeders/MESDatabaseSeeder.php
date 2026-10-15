@@ -8,20 +8,35 @@ use Modules\Core\Authorization\PermissionManifest;
 use Modules\Core\Casts\ActionEnum;
 use Modules\Core\Casts\SettingTypeEnum;
 use Modules\Core\Database\Seeders\CoreDatabaseSeeder;
+use Modules\Core\Database\Seeders\PermissionRefreshSeeder;
 use Modules\Core\Models\Permission;
 use Modules\Core\Models\Role;
 use Modules\Core\Overrides\Seeder;
+use Modules\Core\Seeding\Contracts\DeclaresSeedDependencies;
 use Modules\Core\Seeding\SeedReconciler;
 use Modules\Core\Support\PermissionName;
 use Modules\MES\Models\MachineMessage;
+use Override;
 use Spatie\Permission\PermissionRegistrar;
 
-class MESDatabaseSeeder extends Seeder
+class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
 {
     /**
      * The `api` role administrators give to the service accounts of the machine sources.
      */
     public const string MACHINE_AGENT_ROLE = 'mes-machine-agent';
+
+    /**
+     * `machineAgentRole()` grants `api` permissions that only exist once `permission:refresh` has run, so this node
+     * follows {@see PermissionRefreshSeeder}, declared rather than left to the edges `module.json` implies.
+     *
+     * @return list<class-string>
+     */
+    #[Override]
+    public static function dependsOn(): array
+    {
+        return [PermissionRefreshSeeder::class];
+    }
 
     /**
      * Every row carries the same column set (`encrypted`, `choices` included even when null):
@@ -85,8 +100,8 @@ class MESDatabaseSeeder extends Seeder
 
     /**
      * Creates the `api` role of the machine agents and grants it the `api` permissions of the machine routes. The
-     * permissions come from `permission:refresh`, which runs before the module seeders; one that does not exist yet
-     * is skipped, and the next seed after a refresh grants it. Granted without detaching on every run, so a role an
+     * permissions come from `permission:refresh`, which runs first ({@see self::dependsOn()}); one that does not exist
+     * (the seeder run on its own, outside the graph) is skipped, and the next seed after a refresh grants it. Granted without detaching on every run, so a role an
      * operator widened keeps its grants.
      */
     private function machineAgentRole(): void
