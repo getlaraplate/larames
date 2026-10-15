@@ -9,6 +9,7 @@ use Coolsam\Modules\Resource;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\UnattributedMeasurements\Pages\ListUnattributedMeasurements;
 use Modules\MES\Filament\Resources\UnattributedMeasurements\Tables\UnattributedMeasurementsTable;
 use Modules\MES\Models\UnattributedMeasurement;
@@ -20,6 +21,8 @@ use UnitEnum;
  */
 final class UnattributedMeasurementResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = UnattributedMeasurement::class;
 
@@ -27,7 +30,7 @@ final class UnattributedMeasurementResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBeaker;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 45;

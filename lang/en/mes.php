@@ -13,6 +13,46 @@ return [
         'start' => 'Start',
     ],
     'entities' => [
+        'boms' => [
+            'singular' => 'Bill of materials',
+            'plural' => 'Bills of materials',
+        ],
+        'downtimes' => [
+            'singular' => 'Downtime',
+            'plural' => 'Downtimes',
+        ],
+        'machine_devices' => [
+            'singular' => 'Machine device',
+            'plural' => 'Machine devices',
+        ],
+        'machine_incidents' => [
+            'singular' => 'Machine incident',
+            'plural' => 'Machine incidents',
+        ],
+        'machine_messages' => [
+            'singular' => 'Machine message',
+            'plural' => 'Machine messages',
+        ],
+        'machine_profiles' => [
+            'singular' => 'Machine profile',
+            'plural' => 'Machine profiles',
+        ],
+        'machine_sources' => [
+            'singular' => 'Machine source',
+            'plural' => 'Machine sources',
+        ],
+        'machine_unattributed_measurements' => [
+            'singular' => 'Unattributed measurement',
+            'plural' => 'Unattributed measurements',
+        ],
+        'non_conformances' => [
+            'singular' => 'Non-conformance',
+            'plural' => 'Non-conformances',
+        ],
+        'operation_process_summaries' => [
+            'singular' => 'Operation process summary',
+            'plural' => 'Operation process summaries',
+        ],
         'operations' => [
             'plural' => 'Operations',
             'singular' => 'Operation',
@@ -20,6 +60,26 @@ return [
         'production_orders' => [
             'plural' => 'Production orders',
             'singular' => 'Production order',
+        ],
+        'quality_checks' => [
+            'singular' => 'Quality check',
+            'plural' => 'Quality checks',
+        ],
+        'quality_plans' => [
+            'singular' => 'Quality plan',
+            'plural' => 'Quality plans',
+        ],
+        'routings' => [
+            'singular' => 'Routing',
+            'plural' => 'Routings',
+        ],
+        'shifts' => [
+            'singular' => 'Shift',
+            'plural' => 'Shifts',
+        ],
+        'unmapped_signals' => [
+            'singular' => 'Unmapped signal',
+            'plural' => 'Unmapped signals',
         ],
         'work_centers' => [
             'plural' => 'Work centers',
@@ -60,6 +120,10 @@ return [
         'orderReleased' => 'Order released.',
         'orderTransitionNotAllowed' => 'Transition not allowed for this order.',
         'quantityMustBePositive' => 'Enter a quantity greater than zero.',
+    ],
+    'navigation' => [
+        'machine_connectivity' => 'MES - Machine connectivity',
+        'main' => 'MES',
     ],
     'status' => [
         'operation' => [

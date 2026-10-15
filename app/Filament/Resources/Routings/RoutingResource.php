@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\Routings\Pages\CreateRouting;
 use Modules\MES\Filament\Resources\Routings\Pages\EditRouting;
 use Modules\MES\Filament\Resources\Routings\Pages\ListRoutings;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class RoutingResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = Routing::class;
 
@@ -28,7 +31,7 @@ final class RoutingResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArrowsRightLeft;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 30;

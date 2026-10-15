@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\Downtimes\Pages\CreateDowntime;
 use Modules\MES\Filament\Resources\Downtimes\Pages\EditDowntime;
 use Modules\MES\Filament\Resources\Downtimes\Pages\ListDowntimes;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class DowntimeResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = Downtime::class;
 
@@ -28,7 +31,7 @@ final class DowntimeResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 60;

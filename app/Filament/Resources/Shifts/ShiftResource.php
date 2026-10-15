@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\Shifts\Pages\CreateShift;
 use Modules\MES\Filament\Resources\Shifts\Pages\EditShift;
 use Modules\MES\Filament\Resources\Shifts\Pages\ListShifts;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class ShiftResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = Shift::class;
 
@@ -28,7 +31,7 @@ final class ShiftResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 70;

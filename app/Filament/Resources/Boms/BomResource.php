@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\Boms\Pages\CreateBom;
 use Modules\MES\Filament\Resources\Boms\Pages\EditBom;
 use Modules\MES\Filament\Resources\Boms\Pages\ListBoms;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class BomResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = Bom::class;
 
@@ -28,7 +31,7 @@ final class BomResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedListBullet;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 20;

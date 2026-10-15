@@ -10,18 +10,21 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\MachineDevices\Pages\CreateMachineDevice;
 use Modules\MES\Filament\Resources\MachineDevices\Pages\EditMachineDevice;
 use Modules\MES\Filament\Resources\MachineDevices\Pages\ListMachineDevices;
+use Modules\MES\Filament\Resources\MachineDevices\RelationManagers\SignalsRelationManager;
 use Modules\MES\Filament\Resources\MachineDevices\Schemas\MachineDeviceForm;
 use Modules\MES\Filament\Resources\MachineDevices\Tables\MachineDevicesTable;
 use Modules\MES\Models\MachineDevice;
-use Modules\MES\Filament\Resources\MachineDevices\RelationManagers\SignalsRelationManager;
 use Override;
 use UnitEnum;
 
 final class MachineDeviceResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = MachineDevice::class;
 
@@ -29,7 +32,7 @@ final class MachineDeviceResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCpuChip;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 20;

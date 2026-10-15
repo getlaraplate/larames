@@ -9,6 +9,7 @@ use Coolsam\Modules\Resource;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\OperationProcessSummaries\Pages\ListOperationProcessSummaries;
 use Modules\MES\Filament\Resources\OperationProcessSummaries\Tables\OperationProcessSummariesTable;
 use Modules\MES\Models\OperationProcessSummary;
@@ -20,6 +21,8 @@ use UnitEnum;
  */
 final class OperationProcessSummaryResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = OperationProcessSummary::class;
 
@@ -27,7 +30,7 @@ final class OperationProcessSummaryResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 50;

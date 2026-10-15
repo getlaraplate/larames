@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\ProductionOrders\Pages\EditProductionOrder;
 use Modules\MES\Filament\Resources\ProductionOrders\Pages\ListProductionOrders;
 use Modules\MES\Filament\Resources\ProductionOrders\RelationManagers\LotNumbersRelationManager;
@@ -31,6 +32,8 @@ use UnitEnum;
  */
 final class ProductionOrderResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = ProductionOrder::class;
 
@@ -38,7 +41,7 @@ final class ProductionOrderResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 40;

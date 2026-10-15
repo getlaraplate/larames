@@ -13,6 +13,46 @@ return [
         'start' => 'Avvia',
     ],
     'entities' => [
+        'boms' => [
+            'singular' => 'Distinta base',
+            'plural' => 'Distinte base',
+        ],
+        'downtimes' => [
+            'singular' => 'Fermo macchina',
+            'plural' => 'Fermi macchina',
+        ],
+        'machine_devices' => [
+            'singular' => 'Dispositivo macchina',
+            'plural' => 'Dispositivi macchina',
+        ],
+        'machine_incidents' => [
+            'singular' => 'Anomalia macchina',
+            'plural' => 'Anomalie macchina',
+        ],
+        'machine_messages' => [
+            'singular' => 'Messaggio macchina',
+            'plural' => 'Messaggi macchina',
+        ],
+        'machine_profiles' => [
+            'singular' => 'Profilo macchina',
+            'plural' => 'Profili macchina',
+        ],
+        'machine_sources' => [
+            'singular' => 'Sorgente macchina',
+            'plural' => 'Sorgenti macchina',
+        ],
+        'machine_unattributed_measurements' => [
+            'singular' => 'Misura non attribuita',
+            'plural' => 'Misure non attribuite',
+        ],
+        'non_conformances' => [
+            'singular' => 'Non conformità',
+            'plural' => 'Non conformità',
+        ],
+        'operation_process_summaries' => [
+            'singular' => 'Riepilogo di processo',
+            'plural' => 'Riepiloghi di processo',
+        ],
         'operations' => [
             'plural' => 'Lavorazioni',
             'singular' => 'Lavorazione',
@@ -20,6 +60,26 @@ return [
         'production_orders' => [
             'plural' => 'Ordini di produzione',
             'singular' => 'Ordine di produzione',
+        ],
+        'quality_checks' => [
+            'singular' => 'Controllo qualità',
+            'plural' => 'Controlli qualità',
+        ],
+        'quality_plans' => [
+            'singular' => 'Piano di controllo',
+            'plural' => 'Piani di controllo',
+        ],
+        'routings' => [
+            'singular' => 'Ciclo di lavoro',
+            'plural' => 'Cicli di lavoro',
+        ],
+        'shifts' => [
+            'singular' => 'Turno',
+            'plural' => 'Turni',
+        ],
+        'unmapped_signals' => [
+            'singular' => 'Segnale non mappato',
+            'plural' => 'Segnali non mappati',
         ],
         'work_centers' => [
             'plural' => 'Postazioni',
@@ -60,6 +120,10 @@ return [
         'orderReleased' => 'Ordine rilasciato.',
         'orderTransitionNotAllowed' => 'Transizione non consentita per questo ordine.',
         'quantityMustBePositive' => 'Inserisci una quantità maggiore di zero.',
+    ],
+    'navigation' => [
+        'machine_connectivity' => 'MES - Connettività macchine',
+        'main' => 'MES',
     ],
     'status' => [
         'operation' => [

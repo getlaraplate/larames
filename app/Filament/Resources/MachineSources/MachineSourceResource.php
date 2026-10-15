@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\MachineSources\Pages\CreateMachineSource;
 use Modules\MES\Filament\Resources\MachineSources\Pages\EditMachineSource;
 use Modules\MES\Filament\Resources\MachineSources\Pages\ListMachineSources;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class MachineSourceResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = MachineSource::class;
 
@@ -28,7 +31,7 @@ final class MachineSourceResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSignal;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 10;

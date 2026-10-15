@@ -46,11 +46,11 @@ final class MESPlugin implements Plugin
         // The panel lists the modules alphabetically, each with its groups together in the module's own
         // order (tests/Feature/AdminNavigationGroupsTest.php).
         $panel->navigationGroups([
-            NavigationGroup::make()
-                ->label('MES')
+            'mes.navigation.main' => NavigationGroup::make()
+                ->label(static fn (): string => (string) __('mes.navigation.main'))
                 ->icon(Heroicon::OutlinedWrenchScrewdriver),
-            NavigationGroup::make()
-                ->label('MES - Machine connectivity')
+            'mes.navigation.machine_connectivity' => NavigationGroup::make()
+                ->label(static fn (): string => (string) __('mes.navigation.machine_connectivity'))
                 ->icon(Heroicon::OutlinedSignal),
         ]);
     }

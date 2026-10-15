@@ -9,8 +9,8 @@ use Coolsam\Modules\Resource;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\MachineIncidents\Pages\ListMachineIncidents;
-
 use Modules\MES\Filament\Resources\MachineIncidents\Tables\MachineIncidentsTable;
 use Modules\MES\Models\MachineIncident;
 use Override;
@@ -21,6 +21,8 @@ use UnitEnum;
  */
 final class MachineIncidentResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = MachineIncident::class;
 
@@ -28,7 +30,7 @@ final class MachineIncidentResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 60;

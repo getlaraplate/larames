@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\WorkCenters\Pages\CreateWorkCenter;
 use Modules\MES\Filament\Resources\WorkCenters\Pages\EditWorkCenter;
 use Modules\MES\Filament\Resources\WorkCenters\Pages\ListWorkCenters;
@@ -21,6 +22,8 @@ use UnitEnum;
 
 final class WorkCenterResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = WorkCenter::class;
 
@@ -28,7 +31,7 @@ final class WorkCenterResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedCog6Tooth;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 10;

@@ -10,6 +10,7 @@ use Filament\Panel;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\NonConformances\Pages\EditNonConformance;
 use Modules\MES\Filament\Resources\NonConformances\Pages\ListNonConformances;
 use Modules\MES\Filament\Resources\NonConformances\Schemas\NonConformanceForm;
@@ -25,6 +26,8 @@ use UnitEnum;
  */
 final class NonConformanceResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = NonConformance::class;
 
@@ -32,7 +35,7 @@ final class NonConformanceResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedShieldExclamation;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.main';
 
     #[Override]
     protected static ?int $navigationSort = 55;

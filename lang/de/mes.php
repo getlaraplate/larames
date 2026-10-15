@@ -13,6 +13,46 @@ return [
         'start' => 'Starten',
     ],
     'entities' => [
+        'boms' => [
+            'singular' => 'Stückliste',
+            'plural' => 'Stücklisten',
+        ],
+        'downtimes' => [
+            'singular' => 'Stillstand',
+            'plural' => 'Stillstände',
+        ],
+        'machine_devices' => [
+            'singular' => 'Maschinengerät',
+            'plural' => 'Maschinengeräte',
+        ],
+        'machine_incidents' => [
+            'singular' => 'Maschinenstörung',
+            'plural' => 'Maschinenstörungen',
+        ],
+        'machine_messages' => [
+            'singular' => 'Maschinennachricht',
+            'plural' => 'Maschinennachrichten',
+        ],
+        'machine_profiles' => [
+            'singular' => 'Maschinenprofil',
+            'plural' => 'Maschinenprofile',
+        ],
+        'machine_sources' => [
+            'singular' => 'Maschinenquelle',
+            'plural' => 'Maschinenquellen',
+        ],
+        'machine_unattributed_measurements' => [
+            'singular' => 'Nicht zugeordnete Messung',
+            'plural' => 'Nicht zugeordnete Messungen',
+        ],
+        'non_conformances' => [
+            'singular' => 'Abweichung',
+            'plural' => 'Abweichungen',
+        ],
+        'operation_process_summaries' => [
+            'singular' => 'Prozesszusammenfassung',
+            'plural' => 'Prozesszusammenfassungen',
+        ],
         'operations' => [
             'plural' => 'Arbeitsgänge',
             'singular' => 'Arbeitsgang',
@@ -20,6 +60,26 @@ return [
         'production_orders' => [
             'plural' => 'Fertigungsaufträge',
             'singular' => 'Fertigungsauftrag',
+        ],
+        'quality_checks' => [
+            'singular' => 'Qualitätsprüfung',
+            'plural' => 'Qualitätsprüfungen',
+        ],
+        'quality_plans' => [
+            'singular' => 'Prüfplan',
+            'plural' => 'Prüfpläne',
+        ],
+        'routings' => [
+            'singular' => 'Arbeitsplan',
+            'plural' => 'Arbeitspläne',
+        ],
+        'shifts' => [
+            'singular' => 'Schicht',
+            'plural' => 'Schichten',
+        ],
+        'unmapped_signals' => [
+            'singular' => 'Nicht zugeordnetes Signal',
+            'plural' => 'Nicht zugeordnete Signale',
         ],
         'work_centers' => [
             'plural' => 'Arbeitsplätze',
@@ -60,6 +120,10 @@ return [
         'orderReleased' => 'Auftrag freigegeben.',
         'orderTransitionNotAllowed' => 'Statuswechsel für diesen Auftrag nicht erlaubt.',
         'quantityMustBePositive' => 'Geben Sie eine Menge größer als null ein.',
+    ],
+    'navigation' => [
+        'machine_connectivity' => 'MES - Maschinenanbindung',
+        'main' => 'MES',
     ],
     'status' => [
         'operation' => [

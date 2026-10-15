@@ -13,6 +13,46 @@ return [
         'start' => 'Začni',
     ],
     'entities' => [
+        'boms' => [
+            'singular' => 'Kosovnica',
+            'plural' => 'Kosovnice',
+        ],
+        'downtimes' => [
+            'singular' => 'Zastoj',
+            'plural' => 'Zastoji',
+        ],
+        'machine_devices' => [
+            'singular' => 'Strojna naprava',
+            'plural' => 'Strojne naprave',
+        ],
+        'machine_incidents' => [
+            'singular' => 'Incident stroja',
+            'plural' => 'Incidenti strojev',
+        ],
+        'machine_messages' => [
+            'singular' => 'Sporočilo stroja',
+            'plural' => 'Sporočila strojev',
+        ],
+        'machine_profiles' => [
+            'singular' => 'Profil stroja',
+            'plural' => 'Profili strojev',
+        ],
+        'machine_sources' => [
+            'singular' => 'Vir stroja',
+            'plural' => 'Viri strojev',
+        ],
+        'machine_unattributed_measurements' => [
+            'singular' => 'Nedodeljena meritev',
+            'plural' => 'Nedodeljene meritve',
+        ],
+        'non_conformances' => [
+            'singular' => 'Neskladnost',
+            'plural' => 'Neskladnosti',
+        ],
+        'operation_process_summaries' => [
+            'singular' => 'Povzetek procesa',
+            'plural' => 'Povzetki procesov',
+        ],
         'operations' => [
             'plural' => 'Operacije',
             'singular' => 'Operacija',
@@ -20,6 +60,26 @@ return [
         'production_orders' => [
             'plural' => 'Delovni nalogi',
             'singular' => 'Delovni nalog',
+        ],
+        'quality_checks' => [
+            'singular' => 'Kontrola kakovosti',
+            'plural' => 'Kontrole kakovosti',
+        ],
+        'quality_plans' => [
+            'singular' => 'Načrt kakovosti',
+            'plural' => 'Načrti kakovosti',
+        ],
+        'routings' => [
+            'singular' => 'Tehnološki postopek',
+            'plural' => 'Tehnološki postopki',
+        ],
+        'shifts' => [
+            'singular' => 'Izmena',
+            'plural' => 'Izmene',
+        ],
+        'unmapped_signals' => [
+            'singular' => 'Nepreslikan signal',
+            'plural' => 'Nepreslikani signali',
         ],
         'work_centers' => [
             'plural' => 'Delovna mesta',
@@ -60,6 +120,10 @@ return [
         'orderReleased' => 'Nalog sproščen.',
         'orderTransitionNotAllowed' => 'Prehod za ta nalog ni dovoljen.',
         'quantityMustBePositive' => 'Vnesite količino, večjo od nič.',
+    ],
+    'navigation' => [
+        'machine_connectivity' => 'MES - Povezljivost strojev',
+        'main' => 'MES',
     ],
     'status' => [
         'operation' => [

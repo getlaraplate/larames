@@ -9,6 +9,7 @@ use Coolsam\Modules\Resource;
 use Filament\Panel;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\MachineMessages\Pages\ListMachineMessages;
 use Modules\MES\Filament\Resources\MachineMessages\Pages\ViewMachineMessage;
 use Modules\MES\Filament\Resources\MachineMessages\Tables\MachineMessagesTable;
@@ -21,6 +22,8 @@ use UnitEnum;
  */
 final class MachineMessageResource extends Resource
 {
+    use HasTranslatedResourceLabels;
+
     #[Override]
     protected static ?string $model = MachineMessage::class;
 
@@ -28,7 +31,7 @@ final class MachineMessageResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedInboxArrowDown;
 
     #[Override]
-    protected static string|UnitEnum|null $navigationGroup = 'MES - Machine connectivity';
+    protected static string|UnitEnum|null $navigationGroup = 'mes.navigation.machine_connectivity';
 
     #[Override]
     protected static ?int $navigationSort = 50;
