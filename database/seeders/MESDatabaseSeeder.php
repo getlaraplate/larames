@@ -5,14 +5,24 @@ declare(strict_types=1);
 namespace Modules\MES\Database\Seeders;
 
 use Modules\Core\Authorization\PermissionManifest;
+use Modules\Core\Casts\ActionEnum;
 use Modules\Core\Casts\SettingTypeEnum;
+use Modules\Core\Database\Seeders\CoreDatabaseSeeder;
 use Modules\Core\Models\Permission;
+use Modules\Core\Models\Role;
 use Modules\Core\Overrides\Seeder;
 use Modules\Core\Seeding\SeedReconciler;
+use Modules\Core\Support\PermissionName;
+use Modules\MES\Models\MachineMessage;
 use Spatie\Permission\PermissionRegistrar;
 
 class MESDatabaseSeeder extends Seeder
 {
+    /**
+     * The `api` role administrators give to the service accounts of the machine sources.
+     */
+    public const string MACHINE_AGENT_ROLE = 'mes-machine-agent';
+
     /**
      * Every row carries the same column set (`encrypted`, `choices` included even when null):
      * {@see SeedReconciler} batches these rows into a single `upsert()`, which requires a uniform
@@ -49,6 +59,7 @@ class MESDatabaseSeeder extends Seeder
         );
 
         $this->ensureDomainPermissions();
+        $this->machineAgentRole();
     }
 
     /**
@@ -70,5 +81,43 @@ class MESDatabaseSeeder extends Seeder
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         $this->command?->line('    - MES domain permissions <fg=green>updated</>');
+    }
+
+    /**
+     * Creates the `api` role of the machine agents and grants it the `api` permissions of the machine routes. The
+     * permissions come from `permission:refresh`, which runs before the module seeders; one that does not exist yet
+     * is skipped, and the next seed after a refresh grants it. Granted without detaching on every run, so a role an
+     * operator widened keeps its grants.
+     */
+    private function machineAgentRole(): void
+    {
+        $this->logOperation(Role::class);
+
+        /** @var class-string<Role> $role_class */
+        $role_class = config('permission.models.role');
+
+        /** @var class-string<Permission> $permission_class */
+        $permission_class = config('permission.models.permission');
+
+        $guard = CoreDatabaseSeeder::API_GUARD;
+        $role = $role_class::query()->where(['name' => self::MACHINE_AGENT_ROLE, 'guard_name' => $guard])->first();
+
+        if ($role === null) {
+            $role = $this->create($role_class, [
+                'name' => self::MACHINE_AGENT_ROLE,
+                'guard_name' => $guard,
+                'description' => 'Machine agents: the service accounts of the machine sources.',
+            ]);
+        }
+
+        foreach ([PermissionName::forClass(MachineMessage::class, ActionEnum::Insert->value)] as $permission_name) {
+            $permission_id = $permission_class::query()->where(['name' => $permission_name, 'guard_name' => $guard])->value('id');
+
+            if ($permission_id !== null) {
+                $role->permissions()->syncWithoutDetaching([$permission_id]);
+            }
+        }
+
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
     }
 }

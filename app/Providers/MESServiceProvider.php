@@ -25,32 +25,30 @@ use Modules\MES\Contracts\StockReader;
 use Modules\MES\Events\CapacityOverloadDetected;
 use Modules\MES\Events\MachineIncidentRecorded;
 use Modules\MES\Events\MachineStateObserved;
+use Modules\MES\Events\MaterialShortageDetected;
 use Modules\MES\Events\OperationCompleted;
 use Modules\MES\Events\OperationTargetReached;
 use Modules\MES\Events\OutOfToleranceMeasured;
 use Modules\MES\Events\PartsCounted;
 use Modules\MES\Events\ProbeMeasured;
 use Modules\MES\Events\ProcessValuesSampled;
-use Modules\MES\Events\MaterialShortageDetected;
 use Modules\MES\Events\ProductionOrderCancelled;
 use Modules\MES\Events\ProductionOrderCompleted;
 use Modules\MES\Events\ProductionOrderReleased;
 use Modules\MES\Listeners\CreateProductionOrdersForSalesOrder;
-use Modules\MES\Listeners\NotifyCapacityOverload;
 use Modules\MES\Listeners\MachineStateRecorder;
+use Modules\MES\Listeners\NotifyCapacityOverload;
+use Modules\MES\Listeners\NotifyMachineIncident;
+use Modules\MES\Listeners\NotifyMaterialShortage;
+use Modules\MES\Listeners\NotifyOperationTargetReached;
+use Modules\MES\Listeners\NotifyOutOfTolerance;
 use Modules\MES\Listeners\PartsCountRecorder;
 use Modules\MES\Listeners\ProbeMeasurementRecorder;
 use Modules\MES\Listeners\ProcessValueRecorder;
-use Modules\MES\Listeners\SummarizeOperationProcessValues;
-use Modules\MES\Listeners\NotifyMachineIncident;
-use Modules\MES\Listeners\NotifyOperationTargetReached;
-use Modules\MES\Listeners\NotifyOutOfTolerance;
-use Modules\MES\Listeners\NotifyMaterialShortage;
 use Modules\MES\Listeners\ReleaseComponentsAfterCompletion;
 use Modules\MES\Listeners\ReleaseComponentsForProductionOrder;
 use Modules\MES\Listeners\ReserveComponentsForProductionOrder;
-use Modules\MES\Machine\Process\ProcessValueStore;
-use Modules\MES\Machine\Process\RelationalProcessValueStore;
+use Modules\MES\Listeners\SummarizeOperationProcessValues;
 use Modules\MES\Machine\Mqtt\MachineMessageSubscriber;
 use Modules\MES\Machine\Mqtt\MqttIngest;
 use Modules\MES\Machine\Mqtt\MqttMessageHandler;
@@ -58,6 +56,8 @@ use Modules\MES\Machine\Mqtt\PhpMqttSubscriber;
 use Modules\MES\Machine\Normalizers\CanonicalNormalizer;
 use Modules\MES\Machine\Normalizers\MappedJsonNormalizer;
 use Modules\MES\Machine\Normalizers\NormalizerRegistry;
+use Modules\MES\Machine\Process\ProcessValueStore;
+use Modules\MES\Machine\Process\RelationalProcessValueStore;
 use Modules\MES\Machine\Sparkplug\SparkplugBNormalizer;
 use Modules\MES\Models\Bom;
 use Modules\MES\Models\Downtime;
@@ -80,6 +80,7 @@ use Modules\MES\Services\ErpStockMovementRecorder;
 use Modules\MES\Services\ErpStockReader;
 use Nwidart\Modules\Facades\Module;
 use Override;
+use RuntimeException;
 
 /**
  * @property \Illuminate\Foundation\Application $app
@@ -108,7 +109,7 @@ final class MESServiceProvider extends ModuleServiceProvider
 
         $this->app->bind(ProcessValueStore::class, static fn ($app): ProcessValueStore => match (config()->string('mes.machine.process_store')) {
             'database' => $app->make(RelationalProcessValueStore::class),
-            default => throw new \RuntimeException(sprintf('Unknown process value store [%s]. Known stores: database.', config()->string('mes.machine.process_store'))),
+            default => throw new RuntimeException(sprintf('Unknown process value store [%s]. Known stores: database.', config()->string('mes.machine.process_store'))),
         });
         $this->app->bind(MachineMessageSubscriber::class, PhpMqttSubscriber::class);
         $this->app->bind(MqttMessageHandler::class, MqttIngest::class);
@@ -147,7 +148,7 @@ final class MESServiceProvider extends ModuleServiceProvider
         MachineSignal::observe(MachineConfigurationObserver::class);
 
         RateLimiter::for('mes-machine-ingest', static fn (Request $request): Limit => Limit::perMinute(config()->integer('mes.machine.rate_limit_per_minute'))
-            ->by(sha1((string) $request->bearerToken())));
+            ->by(self::machineIngestLimiterKey($request)));
 
         resolve(MesDomainActionRegistrar::class)->register(resolve(DomainActionRegistry::class));
 
@@ -205,6 +206,17 @@ final class MESServiceProvider extends ModuleServiceProvider
                 ->daily()
                 ->onOneServer();
         });
+    }
+
+    /**
+     * One ingest budget per service account, whichever of its tokens the agent sends. The route resolves the source
+     * before the limiter runs, so the user is always the authenticated account there.
+     */
+    private static function machineIngestLimiterKey(Request $request): string
+    {
+        $user_id = $request->user()?->getAuthIdentifier();
+
+        return 'user:' . (is_int($user_id) || is_string($user_id) ? $user_id : '');
     }
 
     /**

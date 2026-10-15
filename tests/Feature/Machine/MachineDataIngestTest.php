@@ -5,10 +5,15 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Redis;
+use Modules\Core\Models\Permission;
+use Modules\Core\Models\Role;
 use Modules\Core\Models\User;
+use Modules\Core\Services\ApiTokenService;
 use Modules\Core\Support\CrudApiExposure;
+use Modules\Core\Support\PermissionName;
+use Modules\MES\Database\Seeders\MESDatabaseSeeder;
 use Modules\MES\Enums\MachineIncidentType;
-use Modules\MES\Http\Middleware\AuthenticateMachineSource;
 use Modules\MES\Jobs\ProcessMachineMessageJob;
 use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineMessage;
@@ -42,23 +47,51 @@ function ingest(array $envelope, ?string $token): Illuminate\Testing\TestRespons
 {
     $headers = $token === null ? [] : ['Authorization' => "Bearer {$token}"];
 
-    return test()->postJson(route('mes.api.machine-data.ingest'), $envelope, $headers);
+    return test()->postJson(route('mes.api.machine-messages.insert'), $envelope, $headers);
 }
 
 /**
- * A source linked to a service account, and a token of that account with the given abilities.
+ * The ingest permission of the `api` guard, as `permission:refresh` creates it.
  */
-function sourceWithToken(array $attributes = [], array $abilities = [AuthenticateMachineSource::ABILITY]): array
+function machineIngestPermission(): Permission
 {
-    $account = User::factory()->serviceAccount()->create();
-    $source = MachineSource::factory()->create([...$attributes, 'user_id' => $account->id]);
-
-    return [$source, $account->createToken('machine-ingest', $abilities)->plainTextToken];
+    return Permission::query()->firstOrCreate(['name' => PermissionName::forClass(MachineMessage::class, 'insert'), 'guard_name' => 'api']);
 }
 
-it('serves the documented path and route name', function (): void {
-    expect(route('mes.api.machine-data.ingest', absolute: false))->toBe('/api/v1/mes/machine-data');
-});
+/**
+ * The `api` role the MES seeder gives the machine agents.
+ */
+function machineAgentRole(): Role
+{
+    machineIngestPermission();
+    test()->seed(MESDatabaseSeeder::class);
+
+    return Role::query()->where(['name' => MESDatabaseSeeder::MACHINE_AGENT_ROLE, 'guard_name' => 'api'])->sole();
+}
+
+/**
+ * A source linked to a service account holding the machine agent role, and a token issued for that account
+ * the way the user resource issues it. `$abilities` null means every ability the account may grant.
+ *
+ * @param  list<string>|null  $abilities
+ * @param  list<string>|null  $allowed_cidrs
+ * @return array{0: MachineSource, 1: string}
+ */
+function sourceWithToken(array $attributes = [], ?array $abilities = null, ?array $allowed_cidrs = null): array
+{
+    $role = machineAgentRole();
+    $tokens = app(ApiTokenService::class);
+    $account = $tokens->tokenable(User::factory()->serviceAccount()->create());
+    $account->assignRole($role);
+    $source = MachineSource::factory()->create([...$attributes, 'user_id' => $account->id]);
+    $account = $account->fresh();
+
+    if ($abilities !== null) {
+        return [$source, $account->createToken('machine-ingest', $abilities)->plainTextToken];
+    }
+
+    return [$source, $tokens->issue($account, 'machine-ingest', $tokens->grantableAbilities($account), null, $allowed_cidrs)->plainTextToken];
+}
 
 it('accepts a valid envelope with 202, stores it and queues the job', function (): void {
     [$source, $token] = sourceWithToken();
@@ -80,30 +113,97 @@ it('answers a resend with 200 and duplicate true', function (): void {
 });
 
 it('refuses a missing or unknown token with 401', function (?string $token): void {
+    sourceWithToken();
+
     ingest(ingestEnvelope(), $token)->assertUnauthorized();
+
+    expect(MachineMessage::query()->count())->toBe(0);
 })->with([
     'no token' => [null],
     'unknown token' => ['999|nonsense'],
 ]);
 
-it('refuses a token without the ingest ability, or of an inactive source, with 403', function (): void {
-    [, $other_ability] = sourceWithToken(abilities: ['something:else']);
-    ingest(ingestEnvelope(), $other_ability)->assertForbidden();
+it('refuses an expired token with 401', function (): void {
+    [$source] = sourceWithToken();
+    $account = app(ApiTokenService::class)->tokenable($source->serviceAccount);
+    $expired = $account->createToken('old', [PermissionName::forClass(MachineMessage::class, 'insert')], now()->subMinute())->plainTextToken;
 
-    [, $inactive_token] = sourceWithToken(['code' => 'off', 'is_active' => false]);
-    ingest(ingestEnvelope('m-2'), $inactive_token)->assertForbidden();
-
-    expect(MachineMessage::query()->count())->toBe(0)
-        ->and(MachineIncident::query()->where('type', MachineIncidentType::AuthFailure->value)->count())->toBe(2);
+    ingest(ingestEnvelope(), $expired)->assertUnauthorized();
 });
 
-it('records an authentication failure incident once in a while, not on every request', function (): void {
+it('refuses a token without the ingest ability with 403', function (): void {
+    [, $token] = sourceWithToken(abilities: [PermissionName::forClass(MachineMessage::class, 'select')]);
+
+    ingest(ingestEnvelope(), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0);
+});
+
+it('refuses a token used from outside its allowed networks with 403', function (): void {
+    [, $token] = sourceWithToken(allowed_cidrs: ['10.0.0.0/8']);
+
+    ingest(ingestEnvelope(), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0);
+});
+
+it('refuses the token once the role no longer holds the ingest permission with 403', function (): void {
+    [, $token] = sourceWithToken();
+    machineAgentRole()->revokePermissionTo(machineIngestPermission());
+
+    ingest(ingestEnvelope(), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0);
+});
+
+it('refuses the token of a regular user holding the ingest permission with 403 and stores nothing', function (): void {
+    $regular = app(ApiTokenService::class)->tokenable(User::factory()->create());
+    $regular->assignRole(machineAgentRole());
+    MachineSource::factory()->create();
+    MachineSource::query()->withoutGlobalScopes()->toBase()->update(['user_id' => $regular->id]);
+    $token = $regular->fresh()->createToken('t', [PermissionName::forClass(MachineMessage::class, 'insert')])->plainTextToken;
+
+    ingest(ingestEnvelope(), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0)
+        ->and(MachineIncident::query()->count())->toBe(0);
+});
+
+it('refuses a service account that speaks for no source with 403', function (): void {
+    $role = machineAgentRole();
+    $tokens = app(ApiTokenService::class);
+    $account = $tokens->tokenable(User::factory()->serviceAccount()->create());
+    $account->assignRole($role);
+    $token = $tokens->issue($account->fresh(), 'machine-ingest', [PermissionName::forClass(MachineMessage::class, 'insert')], null, null)->plainTextToken;
+
+    ingest(ingestEnvelope(), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0);
+});
+
+it('refuses an inactive source with 403 and records one authentication failure for two refused calls', function (): void {
     [$source, $token] = sourceWithToken(['is_active' => false]);
 
     ingest(ingestEnvelope('a'), $token)->assertForbidden();
     ingest(ingestEnvelope('b'), $token)->assertForbidden();
 
-    expect(MachineIncident::query()->where('source_id', $source->id)->count())->toBe(1);
+    $incidents = MachineIncident::query()->where('source_id', $source->id)->get();
+
+    expect(MachineMessage::query()->count())->toBe(0)
+        ->and($incidents)->toHaveCount(1)
+        ->and($incidents->sole()->type)->toBe(MachineIncidentType::AuthFailure)
+        ->and($incidents->sole()->detail)->toBe(['reason' => 'inactive_source']);
+});
+
+it('refuses a soft-deleted source with 403 and records at most one authentication failure', function (): void {
+    [$source, $token] = sourceWithToken();
+    $source->delete();
+
+    ingest(ingestEnvelope('a'), $token)->assertForbidden();
+    ingest(ingestEnvelope('b'), $token)->assertForbidden();
+
+    expect(MachineMessage::query()->count())->toBe(0)
+        ->and(MachineIncident::query()->where('source_id', $source->id)->count())->toBeLessThanOrEqual(1);
 });
 
 it('refuses a source that is not an http canonical source with 403', function (array $attributes): void {
@@ -127,7 +227,7 @@ it('refuses an invalid envelope with 422 and the schema errors', function (): vo
 it('refuses a body that is not JSON with 422', function (): void {
     [, $token] = sourceWithToken();
 
-    test()->call('POST', route('mes.api.machine-data.ingest'), [], [], [], ['HTTP_AUTHORIZATION' => "Bearer {$token}", 'CONTENT_TYPE' => 'application/json'], '{broken')->assertStatus(422);
+    test()->call('POST', route('mes.api.machine-messages.insert'), [], [], [], ['HTTP_AUTHORIZATION' => "Bearer {$token}", 'CONTENT_TYPE' => 'application/json'], '{broken')->assertStatus(422);
 });
 
 it('refuses a body above the size limit and a message above the sample limit with 413', function (): void {
@@ -142,14 +242,20 @@ it('refuses a body above the size limit and a message above the sample limit wit
     expect(MachineMessage::query()->count())->toBe(0);
 });
 
-it('limits requests per source and says when to retry', function (): void {
+it('limits requests per service account and says when to retry', function (): void {
     config(['mes.machine.rate_limit_per_minute' => 2]);
-    [, $token] = sourceWithToken();
+    [$source, $token] = sourceWithToken();
+    $tokens = app(ApiTokenService::class);
+    $account = $tokens->tokenable($source->serviceAccount);
+    $second_token = $tokens->issue($account, 'second', $tokens->grantableAbilities($account), null, null)->plainTextToken;
+    // The limiter counts in Redis, which outlives the test database: an earlier test may have spent this id's budget.
+    Redis::connection()->del(md5('mes-machine-ingest' . 'user:' . $account->id));
 
     ingest(ingestEnvelope('a'), $token)->assertStatus(202);
-    ingest(ingestEnvelope('b'), $token)->assertStatus(202);
+    ingest(ingestEnvelope('b'), $second_token)->assertStatus(202);
 
     ingest(ingestEnvelope('c'), $token)->assertStatus(429)->assertHeader('Retry-After');
+    ingest(ingestEnvelope('d'), $second_token)->assertStatus(429);
 });
 
 it('keeps tokens and payloads out of the logs', function (): void {
@@ -168,31 +274,19 @@ it('stops accepting a token revoked on its service account', function (): void {
     [$source, $token] = sourceWithToken();
     ingest(ingestEnvelope('a'), $token)->assertStatus(202);
 
-    $source->serviceAccount?->tokens()->delete();
+    app(ApiTokenService::class)->tokenable($source->serviceAccount)->tokens()->delete();
 
     ingest(ingestEnvelope('b'), $token)->assertUnauthorized();
 });
 
-it('refuses the token of a user that speaks for no source with 401', function (): void {
-    $regular = User::factory()->create();
-    MachineSource::factory()->create();
-    MachineSource::query()->withoutGlobalScopes()->toBase()->update(['user_id' => $regular->id]);
-    $regular_token = $regular->createToken('t', [AuthenticateMachineSource::ABILITY])->plainTextToken;
-    $unlinked_token = User::factory()->serviceAccount()->create()->createToken('t', [AuthenticateMachineSource::ABILITY])->plainTextToken;
+it('limits failed authentications per address through the API authentication', function (): void {
+    config(['core.api.rate_limit_per_minute' => 3]);
 
-    ingest(ingestEnvelope('a'), $regular_token)->assertUnauthorized();
-    ingest(ingestEnvelope('b'), $unlinked_token)->assertUnauthorized();
-
-    expect(MachineMessage::query()->count())->toBe(0);
-});
-
-it('limits failed authentications per address', function (): void {
-    for ($i = 0; $i < 30; $i++) {
+    for ($i = 0; $i < 3; $i++) {
         ingest(ingestEnvelope(), "999|random-{$i}")->assertUnauthorized();
     }
 
     ingest(ingestEnvelope(), '999|random-last')->assertStatus(429)->assertHeader('Retry-After');
-    Illuminate\Support\Facades\RateLimiter::clear('mes:machine:auth-failures:127.0.0.1');
 });
 
 it('refuses too many samples before validating the envelope', function (): void {

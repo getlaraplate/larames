@@ -9,7 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use JsonException;
 use Modules\MES\Enums\MachineTransport;
-use Modules\MES\Http\Middleware\AuthenticateMachineSource;
+use Modules\MES\Http\Middleware\ResolveMachineSource;
 use Modules\MES\Machine\MachineMessageInbox;
 use Modules\MES\Machine\Protocol\MachineEnvelopeValidator;
 use Modules\MES\Models\MachineSource;
@@ -22,7 +22,7 @@ final class MachineDataIngestController extends Controller
 {
     public function __invoke(Request $request, MachineEnvelopeValidator $validator, MachineMessageInbox $inbox): JsonResponse
     {
-        $source = $request->attributes->get(AuthenticateMachineSource::REQUEST_ATTRIBUTE);
+        $source = $request->attributes->get(ResolveMachineSource::REQUEST_ATTRIBUTE);
 
         if (! $source instanceof MachineSource) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
@@ -34,7 +34,7 @@ final class MachineDataIngestController extends Controller
 
         $body = $request->getContent();
 
-        if (strlen($body) > config()->integer('mes.machine.max_body_kb') * 1024) {
+        if (mb_strlen($body, '8bit') > config()->integer('mes.machine.max_body_kb') * 1024) {
             return response()->json(['message' => 'The body is too large; split the batch.'], 413);
         }
 
