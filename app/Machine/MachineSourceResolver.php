@@ -10,9 +10,10 @@ use Modules\MES\Models\MachineSource;
 
 /**
  * Turns an authenticated caller into the machine source it speaks for. Only a service account resolves a
- * source, so a regular user's token never reaches the machine routes even when a row names that user. A
- * soft-deleted source is never resolved; whether the source is active is left to the caller, which owns
- * the answer and the incident.
+ * source, so a regular user's token never reaches the machine routes even when a row names that user. The
+ * company scope does not apply (the agent's request carries no company context), so every global scope is
+ * dropped and the soft-delete condition is put back on the model's own column: a soft-deleted source is never
+ * resolved. Whether the source is active is left to the caller, which owns the answer and the incident.
  */
 final class MachineSourceResolver
 {
@@ -22,10 +23,11 @@ final class MachineSourceResolver
             return null;
         }
 
-        return MachineSource::query()
-            ->withoutGlobalScopes()
+        $query = MachineSource::query()->withoutGlobalScopes();
+
+        return $query
             ->where('user_id', $user->getKey())
-            ->whereNull('deleted_at')
+            ->whereNull($query->getModel()->getQualifiedDeletedAtColumn())
             ->first();
     }
 }

@@ -163,8 +163,12 @@ digiti. Il MES li **riceve, li conserva** e usa lo stato della macchina per apri
 prodotte le sonde per i controlli qualità e i valori di processo (temperature, pressioni, ecc.).
 
 - Dal gruppo **Machine connectivity** del pannello crei una **sorgente** (l'agente o il gateway che invia
-  i dati) e le assegni un **token**: viene mostrato **una sola volta**, copialo subito; emetterne uno nuovo
-  revoca il precedente.
+  i dati) e la colleghi a un **account di servizio**: un utente non interattivo, che non accede al pannello.
+  Ogni account di servizio serve **una sola sorgente**, e nella scelta compaiono solo gli account di servizio.
+- Il **token** non si emette più dalla sorgente: lo emetti (e lo revochi) dalla **pagina dell'utente**
+  dell'account di servizio, dandogli i permessi `api` di ingest. Il token viene mostrato **una sola volta**:
+  copialo subito e configuralo sull'agente. Il percorso di invio dei dati è in fase di spostamento: con il
+  prossimo passo di rilascio cambierà, e la guida verrà aggiornata.
 - Una **macchina** (dispositivo) è legata a un centro di lavoro e ha dei **segnali**, ciascuno con un ruolo
   (stato, allarme, pezzi buoni, pezzi scarto, misura, valore di processo...). Un **profilo** applicato alla
   macchina le copia i segnali di un modello noto; i profili si importano ed esportano come file.
