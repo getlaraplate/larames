@@ -19,7 +19,8 @@ final class WorkCenterForm
     use HasForm;
 
     /**
-     * Calendar days as stored in `mes_work_center_calendars.day_of_week` (0 = Monday).
+     * Calendar days as stored in `mes_work_center_calendars.day_of_week` (0 = Monday), named by their
+     * `app.day.*` translation key.
      *
      * @var array<int, string>
      */
@@ -71,24 +72,22 @@ final class WorkCenterForm
                 Toggle::make('is_active')
                     ->default(true),
                 TextInput::make('micro_stop_threshold_seconds')
-                    ->label('Micro-stop threshold (seconds)')
-                    ->helperText('A machine stop becomes a downtime only when it lasts longer than this.')
+                    ->helperText(__('mes.help.microStopThreshold'))
                     ->required()
                     ->integer()
                     ->minValue(0)
                     ->default(60),
                 CheckboxList::make('downtime_states')
-                    ->label('Machine states that count as downtime')
-                    ->helperText('Leave empty for the defaults.')
+                    ->helperText(__('mes.help.defaultDowntimeStates'))
                     ->options(array_combine(self::DOWNTIME_STATE_CHOICES, self::DOWNTIME_STATE_CHOICES))
                     ->dehydrateStateUsing(static fn (?array $state): ?array => $state === null || $state === [] ? null : array_values($state))
                     ->columns(3),
                 Repeater::make('calendar')
                     ->relationship()
-                    ->label('Working calendar')
+                    ->label(__('mes.fields.calendar'))
                     ->schema([
                         Select::make('day_of_week')
-                            ->options(self::DAYS_OF_WEEK)
+                            ->options(static fn (): array => array_map(static fn (string $day): string => (string) __('app.day.' . $day), self::DAYS_OF_WEEK))
                             ->required(),
                         TimePicker::make('start_time')
                             ->seconds(false)

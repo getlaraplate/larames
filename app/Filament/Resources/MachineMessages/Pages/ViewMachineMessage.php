@@ -20,7 +20,7 @@ final class ViewMachineMessage extends ViewRecord
     {
         return $schema->components([
             TextEntry::make('message_id'),
-            TextEntry::make('source.name')->label('Source'),
+            TextEntry::make('source.name')->label(__('mes.fields.source')),
             TextEntry::make('status')->badge(),
             TextEntry::make('received_at')->dateTime(),
             TextEntry::make('attempts'),

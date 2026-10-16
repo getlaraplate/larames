@@ -30,21 +30,21 @@ final class UnmappedSignalsTable
         return $table
             ->defaultSort('last_seen_at', 'desc')
             ->columns([
-                TextColumn::make('source.name')->label('Source')->sortable(),
-                TextColumn::make('device_external_id')->label('Device')->searchable()->sortable(),
-                TextColumn::make('signal_key')->label('Signal')->searchable()->sortable(),
+                TextColumn::make('source.name')->sortable(),
+                TextColumn::make('device_external_id')->searchable()->sortable(),
+                TextColumn::make('signal_key')->searchable()->sortable(),
                 TextColumn::make('last_value')->limit(40),
                 TextColumn::make('last_seen_at')->dateTime()->sortable(),
                 TextColumn::make('seen_count')->numeric()->sortable(),
             ])
             ->recordActions([
                 Action::make('map')
-                    ->label('Map')
+                    ->label(__('mes.actions.map'))
                     ->icon(Heroicon::OutlinedLink)
                     ->visible(static fn (UnmappedSignal $record): bool => ! str_contains($record->signal_key, '#') && self::canMap())
                     ->schema([
                         Select::make('work_center_id')
-                            ->label('Work center (needed when the device is new)')
+                            ->label(__('mes.fields.work_center_for_new_device'))
                             ->options(static fn (): array => WorkCenter::query()->get()->pluck('name', 'id')->all())
                             ->searchable()
                             ->required(static fn (UnmappedSignal $record): bool => ! MachineDevice::query()->where('source_id', $record->source_id)->where('external_id', $record->device_external_id)->exists())
@@ -60,10 +60,9 @@ final class UnmappedSignalsTable
                         Textarea::make('config')
                             ->rows(4)
                             ->rule('json')
-                            ->helperText('JSON, by role, like in the signal form.')
+                            ->helperText(__('mes.help.signalConfigLikeForm'))
                             ->dehydrateStateUsing(static fn (mixed $state): mixed => is_string($state) && $state !== '' ? json_decode($state, true) : null),
                         Select::make('quality_plan_characteristic_id')
-                            ->label('Quality characteristic (measurements)')
                             ->options(static fn (): array => QualityPlanCharacteristic::query()->get()->pluck('characteristic', 'id')->all())
                             ->searchable(),
                     ])
@@ -71,12 +70,12 @@ final class UnmappedSignalsTable
                         try {
                             $signal = resolve(UnmappedSignalMapper::class)->map($record, $data);
                         } catch (ValidationException $validationException) {
-                            Notification::make()->title('The signal was not mapped')->body(collect($validationException->errors())->flatten()->implode(' '))->danger()->send();
+                            Notification::make()->title(__('mes.messages.signalNotMapped'))->body(collect($validationException->errors())->flatten()->implode(' '))->danger()->send();
 
                             return;
                         }
 
-                        Notification::make()->title("Signal {$signal->key} mapped")->success()->send();
+                        Notification::make()->title(__('mes.messages.signalMapped', ['key' => $signal->key]))->success()->send();
                     }),
             ]);
     }

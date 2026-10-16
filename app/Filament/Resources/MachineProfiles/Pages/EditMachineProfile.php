@@ -6,15 +6,15 @@ namespace Modules\MES\Filament\Resources\MachineProfiles\Pages;
 
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
-use Filament\Support\Icons\Heroicon;
-use Modules\MES\Machine\MachineProfileService;
-use Modules\MES\Models\MachineProfile;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 use Filament\Resources\Pages\EditRecord;
+use Filament\Support\Icons\Heroicon;
 use Modules\Core\Filament\Utils\HasCloseOrCancelFormAction;
 use Modules\MES\Filament\Concerns\ChecksMesPolicy;
 use Modules\MES\Filament\Resources\MachineProfiles\MachineProfileResource;
+use Modules\MES\Machine\MachineProfileService;
+use Modules\MES\Models\MachineProfile;
 use Override;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 final class EditMachineProfile extends EditRecord
 {
@@ -32,7 +32,7 @@ final class EditMachineProfile extends EditRecord
     {
         return [
             Action::make('export')
-                ->label('Export profile')
+                ->label(__('mes.actions.exportProfile'))
                 ->icon(Heroicon::OutlinedArrowDownTray)
                 ->visible(fn (): bool => $this->policyAllows('export', $this->record))
                 ->action(function (): StreamedResponse {

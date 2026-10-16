@@ -33,8 +33,7 @@ final class MaterialConsumptionsRelationManager extends RelationManager
             ->recordTitleAttribute('id')
             ->defaultSort('recorded_at')
             ->columns([
-                TextColumn::make('item.name')
-                    ->label('Item'),
+                TextColumn::make('item.name'),
                 TextColumn::make('quantity_planned')
                     ->numeric(decimalPlaces: 4),
                 TextColumn::make('quantity_consumed')

@@ -20,11 +20,10 @@ final class NonConformancesTable
             columns: static function (Collection $default_columns): void {
                 $default_columns->unshift(...[
                     TextColumn::make('productionOrder.number')
-                        ->label('Order')
+                        ->label(__('mes.fields.production_order'))
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('item.name')
-                        ->label('Item')
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('status')

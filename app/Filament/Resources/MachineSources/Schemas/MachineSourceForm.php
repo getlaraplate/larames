@@ -33,11 +33,11 @@ final class MachineSourceForm
                     ->preload()
                     ->required(),
                 Select::make('user_id')
-                    ->label('Service account')
+                    ->label(__('mes.fields.service_account'))
                     ->relationship('serviceAccount', 'name', self::onlyServiceAccounts(...))
                     ->rules([Rule::exists(CoreTables::Users->value, 'id')->where('is_service_account', true)])
                     ->unique(ignoreRecord: true)
-                    ->helperText('The account the edge agent authenticates as. Issue its token, with the api role and allowed addresses, from the user page.')
+                    ->helperText(__('mes.help.serviceAccount'))
                     ->searchable()
                     ->preload()
                     ->nullable(),
@@ -60,7 +60,7 @@ final class MachineSourceForm
                     ->maxLength(255)
                     ->visible(static fn ($get): bool => MachineTransport::Mqtt->value === $get('transport')),
                 KeyValue::make('normalizer_options')
-                    ->helperText('Paths for the mapped_json normaliser (device, signal, timestamp, value, ...).'),
+                    ->helperText(__('mes.help.normalizerOptions')),
                 TextInput::make('heartbeat_timeout_seconds')
                     ->numeric()
                     ->minValue(1)

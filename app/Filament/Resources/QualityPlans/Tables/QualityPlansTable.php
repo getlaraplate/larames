@@ -20,15 +20,14 @@ final class QualityPlansTable
             columns: static function (Collection $default_columns): void {
                 $default_columns->unshift(...[
                     TextColumn::make('item.name')
-                        ->label('Item')
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('name')
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('routingOperation.description')
-                        ->label('Operation')
-                        ->placeholder('Final')
+                        ->label(__('mes.fields.routing_operation'))
+                        ->placeholder(__('mes.help.final'))
                         ->toggleable(),
                     TextColumn::make('version')
                         ->searchable()

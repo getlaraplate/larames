@@ -34,7 +34,7 @@ final class EditMachineSource extends EditRecord
     {
         return [
             Action::make('reprocess_range')
-                ->label('Reprocess range')
+                ->label(__('mes.actions.reprocessRange'))
                 ->icon(Heroicon::OutlinedArrowPath)
                 ->schema([
                     DateTimePicker::make('from')->required(),
@@ -46,7 +46,7 @@ final class EditMachineSource extends EditRecord
                     $source = $this->record;
                     $queued = resolve(MachineMessageReprocessor::class)->reprocessRange($source, Carbon::parse($data['from']), Carbon::parse($data['to']));
 
-                    Notification::make()->title("Messages queued for reprocessing: {$queued}")->success()->send();
+                    Notification::make()->title(__('mes.messages.messagesQueuedForReprocessing', ['count' => $queued]))->success()->send();
                 }),
             DeleteAction::make(),
         ];

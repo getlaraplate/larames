@@ -20,17 +20,16 @@ final class MachineIncidentsTable
             ->columns([
                 TextColumn::make('occurred_at')->dateTime()->sortable(),
                 TextColumn::make('type')->badge()->sortable(),
-                TextColumn::make('source.name')->label('Source'),
-                TextColumn::make('device.external_id')->label('Device'),
+                TextColumn::make('source.name'),
+                TextColumn::make('device.external_id'),
                 TextColumn::make('detail')
                     ->formatStateUsing(static fn (mixed $state): string => is_array($state) ? mb_strimwidth((string) json_encode($state), 0, 80, '...') : '')
                     ->toggleable(),
-                TextColumn::make('resolved_at')->dateTime()->placeholder('open'),
+                TextColumn::make('resolved_at')->dateTime()->placeholder(__('mes.help.open')),
             ])
             ->filters([
                 SelectFilter::make('type')->options(array_combine(MachineIncidentType::values(), MachineIncidentType::values())),
                 Filter::make('unresolved')
-                    ->label('Open only')
                     ->query(static fn (Builder $query): Builder => $query->whereNull('resolved_at')),
             ]);
     }

@@ -31,16 +31,15 @@ final class ListMachineProfiles extends ListRecords
         return [
             CreateAction::make(),
             Action::make('import')
-                ->label('Import profile')
+                ->label(__('mes.actions.importProfile'))
                 ->icon(Heroicon::OutlinedArrowUpTray)
                 ->schema([
                     Select::make('company_id')
-                        ->label('Company')
                         ->options(static fn (): array => Company::query()->withoutGlobalScopes()->get()->pluck('name', 'id')->all())
                         ->default(static fn (): ?int => current_company_id())
                         ->required(),
                     FileUpload::make('file')
-                        ->label('Profile file (JSON)')
+                        ->label(__('mes.fields.profile_file'))
                         ->acceptedFileTypes(['application/json', 'text/plain'])
                         ->storeFiles(false)
                         ->required(),
@@ -53,7 +52,7 @@ final class ListMachineProfiles extends ListRecords
                         $profile = resolve(MachineProfileService::class)->import((int) $data['company_id'], $json);
                     } catch (ValidationException $validationException) {
                         Notification::make()
-                            ->title('The profile was not imported')
+                            ->title(__('mes.messages.profileNotImported'))
                             ->body(collect($validationException->errors())->flatten()->implode(' '))
                             ->danger()
                             ->send();
@@ -62,7 +61,7 @@ final class ListMachineProfiles extends ListRecords
                     }
 
                     Notification::make()
-                        ->title("Profile {$profile->vendor} {$profile->model} {$profile->version} imported")
+                        ->title(__('mes.messages.profileImported', ['vendor' => $profile->vendor, 'model' => $profile->model, 'version' => $profile->version]))
                         ->success()
                         ->send();
                 }),

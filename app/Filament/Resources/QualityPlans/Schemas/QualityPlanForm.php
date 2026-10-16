@@ -35,7 +35,7 @@ final class QualityPlanForm
                     ->relationship('routingOperation', 'description')
                     ->searchable()
                     ->preload()
-                    ->helperText('Leave empty for a final inspection on the finished item.'),
+                    ->helperText(__('mes.help.finalInspection')),
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),

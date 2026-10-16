@@ -28,10 +28,10 @@ final class UnattributedMeasurementsTable
             ->modifyQueryUsing(static fn ($query) => $query->with(['signal.characteristic', 'signal.device.workCenter']))
             ->defaultSort('ts', 'desc')
             ->columns([
-                TextColumn::make('signal.key')->label('Signal')->searchable()->sortable(),
-                TextColumn::make('signal.characteristic.characteristic')->label('Characteristic'),
-                TextColumn::make('workCenterName')->label('Work center')->state(static fn (UnattributedMeasurement $record): ?string => $record->signal?->device?->workCenter?->name),
-                TextColumn::make('production_order_operation_id')->label('Operation')->placeholder('-')->sortable(),
+                TextColumn::make('signal.key')->searchable()->sortable(),
+                TextColumn::make('signal.characteristic.characteristic'),
+                TextColumn::make('workCenterName')->label(__('mes.fields.work_center'))->state(static fn (UnattributedMeasurement $record): ?string => $record->signal?->device?->workCenter?->name),
+                TextColumn::make('production_order_operation_id')->placeholder('-')->sortable(),
                 TextColumn::make('value')->numeric(decimalPlaces: 4),
                 TextColumn::make('serial')->placeholder('-')->searchable(),
                 TextColumn::make('ts')->dateTime()->sortable(),
@@ -39,7 +39,6 @@ final class UnattributedMeasurementsTable
             ])
             ->filters([
                 TernaryFilter::make('assigned')
-                    ->label('Assigned')
                     ->queries(
                         true: static fn ($query) => $query->whereNotNull('assigned_at'),
                         false: static fn ($query) => $query->whereNull('assigned_at'),
@@ -47,12 +46,11 @@ final class UnattributedMeasurementsTable
             ])
             ->recordActions([
                 Action::make('assign')
-                    ->label('Assign')
+                    ->label(__('mes.actions.assign'))
                     ->icon(Heroicon::OutlinedLink)
                     ->visible(static fn (UnattributedMeasurement $record): bool => $record->assigned_at === null && $record->signal?->quality_plan_characteristic_id !== null && self::canAssign())
                     ->schema([
                         Select::make('quality_check_id')
-                            ->label('Quality check')
                             ->options(static fn (UnattributedMeasurement $record): array => self::checkOptions($record))
                             ->searchable()
                             ->required(),
@@ -68,7 +66,7 @@ final class UnattributedMeasurementsTable
                             return;
                         }
 
-                        Notification::make()->title('Measurement assigned')->success()->send();
+                        Notification::make()->title(__('mes.messages.measurementAssigned'))->success()->send();
                     }),
             ]);
     }

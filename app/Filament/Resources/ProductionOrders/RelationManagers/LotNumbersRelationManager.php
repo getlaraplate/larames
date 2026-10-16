@@ -33,8 +33,7 @@ final class LotNumbersRelationManager extends RelationManager
             ->defaultSort('produced_at')
             ->columns([
                 TextColumn::make('code'),
-                TextColumn::make('item.name')
-                    ->label('Item'),
+                TextColumn::make('item.name'),
                 TextColumn::make('quantity')
                     ->numeric(decimalPlaces: 4),
                 TextColumn::make('produced_at')

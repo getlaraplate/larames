@@ -62,23 +62,23 @@ final class ProductionDashboardWidget extends BaseWidget
         ]);
 
         return [
-            Stat::make('Open production orders', $data['open_orders'])
-                ->description('Draft, released or in progress')
+            Stat::make(__('mes.widgets.openProductionOrders'), $data['open_orders'])
+                ->description(__('mes.widgets.openProductionOrdersHint'))
                 ->descriptionIcon('heroicon-o-clipboard-document-list')
                 ->color('primary')
                 ->descriptionColor('mes'),
-            Stat::make('Running operations', $data['running_operations'])
-                ->description('Operations in progress')
+            Stat::make(__('mes.widgets.runningOperations'), $data['running_operations'])
+                ->description(__('mes.widgets.runningOperationsHint'))
                 ->descriptionIcon('heroicon-o-cog-6-tooth')
                 ->color('info')
                 ->descriptionColor('mes'),
-            Stat::make('Completed orders', $data['completed_orders'])
-                ->description('Production orders completed')
+            Stat::make(__('mes.widgets.completedOrders'), $data['completed_orders'])
+                ->description(__('mes.widgets.completedOrdersHint'))
                 ->descriptionIcon('heroicon-o-check-circle')
                 ->color('success')
                 ->descriptionColor('mes'),
-            Stat::make('Open non-conformances', $data['open_non_conformances'])
-                ->description('Awaiting review or resolution')
+            Stat::make(__('mes.widgets.openNonConformances'), $data['open_non_conformances'])
+                ->description(__('mes.widgets.openNonConformancesHint'))
                 ->descriptionIcon('heroicon-o-exclamation-triangle')
                 ->color($data['open_non_conformances'] > 0 ? 'danger' : 'gray'),
         ];

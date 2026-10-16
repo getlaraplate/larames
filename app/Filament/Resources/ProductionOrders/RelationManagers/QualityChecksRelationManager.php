@@ -34,12 +34,10 @@ final class QualityChecksRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('operation.description')
-                    ->label('Operation')
-                    ->placeholder('Final'),
+                    ->placeholder(__('mes.help.final')),
                 TextColumn::make('status')
                     ->badge(),
                 TextColumn::make('measurements_count')
-                    ->label('Measurements')
                     ->counts('measurements'),
                 TextColumn::make('checked_at')
                     ->dateTime(),

@@ -51,12 +51,11 @@ final class SignalsRelationManager extends RelationManager
                 ->maxLength(16),
             Textarea::make('config')
                 ->rows(6)
-                ->helperText('JSON, by role: {"map": {...}} for state and alarm, {"mode": "cumulative", "rollover_max": 65535} for counts, {"min": 0, "max": 100} for process values.')
+                ->helperText(__('mes.help.signalConfig'))
                 ->rule('json')
                 ->formatStateUsing(static fn (mixed $state): ?string => is_array($state) ? (string) json_encode($state, JSON_UNESCAPED_SLASHES) : (is_string($state) ? $state : null))
                 ->dehydrateStateUsing(static fn (mixed $state): mixed => is_string($state) && $state !== '' ? json_decode($state, true) : null),
             Select::make('quality_plan_characteristic_id')
-                ->label('Quality characteristic (measurements)')
                 ->options(static fn (): array => QualityPlanCharacteristic::query()->get()->pluck('characteristic', 'id')->all())
                 ->searchable(),
         ]);

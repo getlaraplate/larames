@@ -39,14 +39,14 @@ final class EditProductionOrder extends EditRecord
     {
         return [
             Action::make('release')
-                ->label('Release')
+                ->label(__('mes.actions.release'))
                 ->icon(Heroicon::OutlinedPlay)
                 ->color('info')
                 ->requiresConfirmation()
                 ->visible(fn (): bool => $this->policyAllows('release'))
                 ->action(fn () => $this->runTransition('Order released', static fn (ProductionOrderService $service, ProductionOrder $order) => $service->release($order))),
             Action::make('complete')
-                ->label('Complete')
+                ->label(__('mes.actions.complete'))
                 ->icon(Heroicon::OutlinedCheckCircle)
                 ->color('success')
                 ->fillForm(fn (): array => ['quantity_produced' => $this->lastOperationDeclaredGood()])
@@ -65,7 +65,7 @@ final class EditProductionOrder extends EditRecord
                     filled($data['lot_code'] ?? null) ? (string) $data['lot_code'] : null,
                 ))),
             Action::make('cancel')
-                ->label('Cancel order')
+                ->label(__('mes.actions.cancelOrder'))
                 ->icon(Heroicon::OutlinedXCircle)
                 ->color('danger')
                 ->requiresConfirmation()

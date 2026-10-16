@@ -9,9 +9,9 @@ use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Gate;
@@ -47,7 +47,7 @@ final class OperationsRelationManager extends RelationManager
                     ->sortable(),
                 TextColumn::make('description'),
                 TextColumn::make('workCenter.name')
-                    ->label('Work center'),
+                    ->label(__('mes.fields.work_center')),
                 TextColumn::make('status')
                     ->badge(),
                 IconColumn::make('is_parallel')
@@ -62,27 +62,22 @@ final class OperationsRelationManager extends RelationManager
                     ->numeric(decimalPlaces: 2)
                     ->suffix('%'),
                 TextColumn::make('machine_good_quantity')
-                    ->label('Machine good')
                     ->numeric(decimalPlaces: 2),
                 TextColumn::make('machine_scrap_quantity')
-                    ->label('Machine scrap')
                     ->numeric(decimalPlaces: 2),
                 TextColumn::make('declared_good_quantity')
-                    ->label('Declared good')
                     ->numeric(decimalPlaces: 2)
                     ->placeholder('-'),
                 TextColumn::make('declared_scrap_quantity')
-                    ->label('Declared scrap')
                     ->numeric(decimalPlaces: 2)
                     ->placeholder('-'),
                 TextColumn::make('target_reached_at')
-                    ->label('Target reached')
                     ->dateTime()
                     ->placeholder('-'),
             ])
             ->recordActions([
                 Action::make('declare')
-                    ->label('Declare quantities')
+                    ->label(__('mes.actions.declareQuantities'))
                     ->icon(Heroicon::OutlinedPencilSquare)
                     ->fillForm(static fn (ProductionOrderOperation $record): array => [
                         'declared_good_quantity' => $record->declared_good_quantity ?? $record->machine_good_quantity,
@@ -97,7 +92,7 @@ final class OperationsRelationManager extends RelationManager
                         resolve(OperationQuantityDeclarer::class)->declare($record, (float) $data['declared_good_quantity'], (float) $data['declared_scrap_quantity'], is_numeric(auth()->id()) ? (int) auth()->id() : null);
                     }),
                 Action::make('assign_counts')
-                    ->label('Assign machine counts')
+                    ->label(__('mes.actions.assignMachineCounts'))
                     ->icon(Heroicon::OutlinedLink)
                     ->schema([
                         DateTimePicker::make('from')->seconds(false)->required(),

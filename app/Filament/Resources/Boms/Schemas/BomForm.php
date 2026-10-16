@@ -43,7 +43,7 @@ final class BomForm
                     ->default(true),
                 Repeater::make('bomLines')
                     ->relationship()
-                    ->label('Components')
+                    ->label(__('mes.fields.bom_lines'))
                     ->schema([
                         Select::make('item_id')
                             ->relationship('item', 'name')
@@ -64,7 +64,7 @@ final class BomForm
                             ->default(ConsumptionMethod::Backflush->value),
                         Select::make('routing_operation_id')
                             ->relationship('routingOperation', 'description')
-                            ->label('Backflush on operation')
+                            ->label(__('mes.fields.backflush_operation'))
                             ->searchable()
                             ->preload()
                             ->nullable(),

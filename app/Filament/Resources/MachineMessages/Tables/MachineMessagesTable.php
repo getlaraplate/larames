@@ -26,7 +26,7 @@ final class MachineMessagesTable
             ->defaultSort('received_at', 'desc')
             ->columns([
                 TextColumn::make('received_at')->dateTime()->sortable(),
-                TextColumn::make('source.name')->label('Source')->sortable(),
+                TextColumn::make('source.name')->sortable(),
                 TextColumn::make('message_id')->searchable(),
                 TextColumn::make('source_seq')->numeric(),
                 TextColumn::make('transport')->badge(),
@@ -36,12 +36,12 @@ final class MachineMessagesTable
             ])
             ->filters([
                 SelectFilter::make('status')->options(array_combine(MachineMessageStatus::values(), MachineMessageStatus::values())),
-                SelectFilter::make('source_id')->label('Source')->options(static fn (): array => MachineSource::query()->get()->pluck('name', 'id')->all()),
+                SelectFilter::make('source_id')->options(static fn (): array => MachineSource::query()->get()->pluck('name', 'id')->all()),
             ])
             ->recordActions([
                 ViewAction::make(),
                 Action::make('reprocess')
-                    ->label('Reprocess')
+                    ->label(__('mes.actions.reprocess'))
                     ->icon(Heroicon::OutlinedArrowPath)
                     ->visible(static function (MachineMessage $record): bool {
                         $user = auth()->user();
@@ -51,7 +51,7 @@ final class MachineMessagesTable
                     ->action(static function (MachineMessage $record): void {
                         resolve(MachineMessageReprocessor::class)->reprocess($record);
 
-                        Notification::make()->title('Message queued for reprocessing')->success()->send();
+                        Notification::make()->title(__('mes.messages.messageQueuedForReprocessing'))->success()->send();
                     }),
             ]);
     }

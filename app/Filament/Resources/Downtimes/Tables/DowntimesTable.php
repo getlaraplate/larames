@@ -20,7 +20,7 @@ final class DowntimesTable
             columns: static function (Collection $default_columns): void {
                 $default_columns->unshift(...[
                     TextColumn::make('workCenter.name')
-                        ->label('Work center')
+                        ->label(__('mes.fields.work_center'))
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('cause')
@@ -30,7 +30,6 @@ final class DowntimesTable
                         ->badge()
                         ->sortable(),
                     TextColumn::make('device.external_id')
-                        ->label('Device')
                         ->placeholder('-')
                         ->toggleable(),
                     TextColumn::make('alarm_code')

@@ -23,7 +23,6 @@ final class ProductionOrdersTable
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('item.name')
-                        ->label('Item')
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('status')
@@ -39,7 +38,6 @@ final class ProductionOrdersTable
                         ->dateTime()
                         ->sortable(),
                     TextColumn::make('warehouse.name')
-                        ->label('Warehouse')
                         ->toggleable(),
                 ]);
             },

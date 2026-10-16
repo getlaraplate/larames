@@ -20,7 +20,6 @@ final class RoutingsTable
             columns: static function (Collection $default_columns): void {
                 $default_columns->unshift(...[
                     TextColumn::make('item.name')
-                        ->label('Item')
                         ->searchable()
                         ->sortable(),
                     TextColumn::make('version')

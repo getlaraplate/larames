@@ -20,9 +20,9 @@ final class MachineDevicesTable
             table: $table,
             columns: static function (Collection $default_columns): void {
                 $default_columns->unshift(...[
-                    TextColumn::make('source.name')->label('Source')->sortable(),
+                    TextColumn::make('source.name')->sortable(),
                     TextColumn::make('external_id')->searchable()->sortable(),
-                    TextColumn::make('workCenter.name')->label('Work center'),
+                    TextColumn::make('workCenter.name')->label(__('mes.fields.work_center')),
                     TextColumn::make('profile_version')->toggleable(),
                     TextColumn::make('last_seen_at')->dateTime()->sortable(),
                     IconColumn::make('is_active')->boolean(),
