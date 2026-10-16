@@ -6,7 +6,7 @@ namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Illuminate\Database\Eloquent\Builder;
+use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineState;
 use Modules\MES\Enums\SampleQuality;
 use Modules\MES\Enums\SignalRole;
@@ -15,16 +15,21 @@ use Modules\MES\Events\PartsCounted;
 use Modules\MES\Events\ProbeMeasured;
 use Modules\MES\Events\ProcessValuesSampled;
 use Modules\MES\Machine\Data\DeviceNotice;
+use Modules\MES\Machine\Data\NormalizedLoss;
 use Modules\MES\Machine\Data\NormalizedMessage;
 use Modules\MES\Machine\Data\NormalizedSample;
 use Modules\MES\Machine\Data\ResolvedSample;
 use Modules\MES\Machine\Data\ResolvedSignal;
 use Modules\MES\Models\MachineDevice;
+use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineSource;
 
 /**
  * The pipeline of one normalised message: resolve every sample to its signal, record what is not
  * configured, attribute, and dispatch the typed events grouped by device and role.
+ *
+ * The loss markers the agent sends (`losses[]`) become `data_dropped` incidents, once each: a second run of
+ * the same message (reprocessing, a retry after a late failure) finds the incidents of the first.
  *
  * Resolve an instance per message (the container does): the resolver and the attributor keep what they
  * read for the duration of the message.
@@ -35,6 +40,7 @@ final class MachineMessageProcessor
         private readonly SignalResolver $resolver,
         private readonly OperationAttributor $attributor,
         private readonly UnmappedSignalRecorder $unmapped,
+        private readonly MachineIncidentRecorder $incidents,
     ) {}
 
     /**
@@ -112,9 +118,80 @@ final class MachineMessageProcessor
             }
         }
 
+        $this->recordLosses($source, $message->losses);
         $this->unmapped->recordMany($source, $unmapped, $count_unmapped);
         $this->touch($source, $touched, $received_at);
         $this->dispatch($groups);
+    }
+
+    /**
+     * Opens one `data_dropped` incident per marker that has none yet, dated at the end of the lost range.
+     * A marker matches an incident when every field of the detail does; a message that holds two
+     * identical markers still gets two incidents, one each, on any number of runs.
+     *
+     * @param  list<NormalizedLoss>  $losses
+     */
+    private function recordLosses(MachineSource $source, array $losses): void
+    {
+        if ($losses === []) {
+            return;
+        }
+
+        $wanted = [];
+
+        foreach ($losses as $loss) {
+            $detail = $this->lossDetail($loss);
+            $wanted[$this->lossKey($detail)][] = [$loss, $detail];
+        }
+
+        $zone = now()->getTimezone();
+        $from = min(array_map(static fn (NormalizedLoss $loss): CarbonImmutable => $loss->to_ts, $losses))->setTimezone($zone)->subSecond();
+        $to = max(array_map(static fn (NormalizedLoss $loss): CarbonImmutable => $loss->to_ts, $losses))->setTimezone($zone)->addSecond();
+        $recorded = [];
+
+        // `occurred_at` is stored in the application time zone and keeps whole seconds: the range is widened by one second and the exact match is made on the detail.
+        $existing = MachineIncident::query()
+            ->withoutGlobalScopes()
+            ->where('source_id', $source->id)
+            ->where('type', MachineIncidentType::DataDropped->value)
+            ->whereBetween('occurred_at', [$from, $to])
+            ->get();
+
+        foreach ($existing as $incident) {
+            $key = $this->lossKey($incident->detail);
+            $recorded[$key] = ($recorded[$key] ?? 0) + 1;
+        }
+
+        foreach ($wanted as $key => $entries) {
+            foreach (array_slice($entries, $recorded[$key] ?? 0) as [$loss, $detail]) {
+                $this->incidents->record($source, MachineIncidentType::DataDropped, $detail, null, $loss->to_ts->setTimezone($zone));
+            }
+        }
+    }
+
+    /**
+     * @return array{message_id: string, priority: string, from_ts: string, to_ts: string, samples: int, reason: string}
+     */
+    private function lossDetail(NormalizedLoss $loss): array
+    {
+        return [
+            'message_id' => $loss->message_id,
+            'priority' => $loss->priority,
+            'from_ts' => $loss->from_ts->toIso8601ZuluString('millisecond'),
+            'to_ts' => $loss->to_ts->toIso8601ZuluString('millisecond'),
+            'samples' => $loss->samples,
+            'reason' => $loss->reason,
+        ];
+    }
+
+    /**
+     * The identity of a marker, built by position so the key order of the stored JSON does not matter.
+     *
+     * @param  array<string, mixed>  $detail
+     */
+    private function lossKey(array $detail): string
+    {
+        return json_encode(array_map(static fn (string $field): mixed => $detail[$field] ?? null, ['message_id', 'priority', 'from_ts', 'to_ts', 'samples', 'reason']), JSON_THROW_ON_ERROR);
     }
 
     /**

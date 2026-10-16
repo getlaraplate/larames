@@ -208,6 +208,16 @@ return [
         ],
     ],
     'types' => [
+        'machineIncident' => [
+            'auth_failure' => 'Authentifizierung fehlgeschlagen',
+            'bridge_down' => 'MQTT-Bridge ausgefallen',
+            'clock_skew' => 'Uhrabweichung',
+            'config_rejected' => 'Konfiguration abgelehnt',
+            'data_dropped' => 'Daten verworfen',
+            'device_silent' => 'Gerät stumm',
+            'message_failed' => 'Nachricht fehlgeschlagen',
+            'seq_gap' => 'Sequenzlücke',
+        ],
         'workCenter' => [
             'cell' => 'Zelle',
             'line' => 'Linie',

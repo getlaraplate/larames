@@ -208,6 +208,16 @@ return [
         ],
     ],
     'types' => [
+        'machineIncident' => [
+            'auth_failure' => 'Neuspela overitev',
+            'bridge_down' => 'Most MQTT ne deluje',
+            'clock_skew' => 'Odstopanje ure',
+            'config_rejected' => 'Zavrnjena konfiguracija',
+            'data_dropped' => 'Zavrženi podatki',
+            'device_silent' => 'Naprava ne oddaja',
+            'message_failed' => 'Neuspelo sporočilo',
+            'seq_gap' => 'Vrzel v zaporedju',
+        ],
         'workCenter' => [
             'cell' => 'Celica',
             'line' => 'Linija',

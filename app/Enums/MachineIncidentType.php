@@ -12,6 +12,8 @@ enum MachineIncidentType: string
     case AuthFailure = 'auth_failure';
     case BridgeDown = 'bridge_down';
     case DeviceSilent = 'device_silent';
+    case DataDropped = 'data_dropped';
+    case ConfigRejected = 'config_rejected';
 
     /**
      * Returns an 'in:...' validation rule string for all enum values.

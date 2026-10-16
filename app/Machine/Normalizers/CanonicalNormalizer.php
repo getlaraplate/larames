@@ -10,6 +10,7 @@ use JsonException;
 use Modules\MES\Enums\SampleQuality;
 use Modules\MES\Machine\Data\DeviceNotice;
 use Modules\MES\Machine\Data\MessageMeta;
+use Modules\MES\Machine\Data\NormalizedLoss;
 use Modules\MES\Machine\Data\NormalizedMessage;
 use Modules\MES\Machine\Data\NormalizedSample;
 use Modules\MES\Models\MachineSource;
@@ -62,13 +63,42 @@ final class CanonicalNormalizer implements MachineMessageNormalizer
                     default => $this->collectSamples($name, Arr::array($device, 'samples'), $samples),
                 };
             }
+
+            $losses = $this->losses($envelope);
         } catch (UnreadableMachinePayload $unreadable) {
             throw $unreadable;
         } catch (Throwable $throwable) {
             throw new UnreadableMachinePayload('The envelope is unreadable: ' . $throwable->getMessage(), 0, $throwable);
         }
 
-        return new NormalizedMessage($samples, $notices);
+        return new NormalizedMessage($samples, $notices, $losses);
+    }
+
+    /**
+     * @param  array<mixed>  $envelope
+     * @return list<NormalizedLoss>
+     */
+    private function losses(array $envelope): array
+    {
+        $message_id = Arr::string($envelope, 'message_id');
+        $losses = [];
+
+        foreach (is_array($envelope['losses'] ?? null) ? $envelope['losses'] : [] as $loss) {
+            if (! is_array($loss)) {
+                throw new UnreadableMachinePayload('A loss marker is not an object.');
+            }
+
+            $losses[] = new NormalizedLoss(
+                message_id: $message_id,
+                priority: Arr::string($loss, 'priority'),
+                from_ts: CarbonImmutable::parse(Arr::string($loss, 'from_ts'))->utc(),
+                to_ts: CarbonImmutable::parse(Arr::string($loss, 'to_ts'))->utc(),
+                samples: Arr::integer($loss, 'samples'),
+                reason: Arr::string($loss, 'reason'),
+            );
+        }
+
+        return $losses;
     }
 
     /**

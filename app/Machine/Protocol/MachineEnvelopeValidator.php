@@ -72,6 +72,13 @@ final class MachineEnvelopeValidator
             'devices.*.signals.*.signal' => ['required', 'string', 'min:1', 'max:160'],
             'devices.*.signals.*.data_type' => ['required', Rule::in(['number', 'boolean', 'string'])],
             'devices.*.signals.*.unit' => ['nullable', 'string', 'max:16'],
+            'losses' => ['sometimes', 'array'],
+            'losses.*' => ['array:priority,from_ts,to_ts,samples,reason'],
+            'losses.*.priority' => ['required', Rule::in(['critical', 'bulk'])],
+            'losses.*.from_ts' => ['required', 'string', $this->isoDateTime()],
+            'losses.*.to_ts' => ['required', 'string', $this->isoDateTime()],
+            'losses.*.samples' => ['required', 'integer:strict', 'min:1'],
+            'losses.*.reason' => ['required', Rule::in(['buffer_full', 'rejected_invalid'])],
         ];
     }
 

@@ -13,6 +13,10 @@
       "type": "array",
       "minItems": 1,
       "items": { "$ref": "#/$defs/device" }
+    },
+    "losses": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/loss" }
     }
   },
   "$defs": {
@@ -59,6 +63,18 @@
           "additionalProperties": false
         }
       }
+    },
+    "loss": {
+      "type": "object",
+      "required": ["priority", "from_ts", "to_ts", "samples", "reason"],
+      "properties": {
+        "priority": { "enum": ["critical", "bulk"] },
+        "from_ts": { "type": "string", "format": "date-time" },
+        "to_ts": { "type": "string", "format": "date-time" },
+        "samples": { "type": "integer", "minimum": 1 },
+        "reason": { "enum": ["buffer_full", "rejected_invalid"] }
+      },
+      "additionalProperties": false
     },
     "birthSignal": {
       "type": "object",

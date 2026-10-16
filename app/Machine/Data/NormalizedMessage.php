@@ -12,9 +12,11 @@ final readonly class NormalizedMessage
     /**
      * @param  list<NormalizedSample>  $samples
      * @param  list<DeviceNotice>  $notices
+     * @param  list<NormalizedLoss>  $losses
      */
     public function __construct(
         public array $samples = [],
         public array $notices = [],
+        public array $losses = [],
     ) {}
 }

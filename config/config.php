@@ -57,7 +57,8 @@ return [
     | - capacity_overload: sent when an operation starts on a work center whose
     |   materialised load for the day exceeds its available minutes. Same shape.
     | - machine_incident: sent when a machine incident is recorded (sequence gap,
-    |   clock skew, failed message, refused authentication, silent device). Same shape.
+    |   clock skew, failed message, refused authentication, MQTT bridge down, silent
+    |   device, data dropped by the agent, configuration rejected). Same shape.
     | - operation_target: sent once per operation when the machine counted the
     |   planned quantity of its order (the operation is not completed). Same shape.
     | - out_of_tolerance: sent when a probe measures a value outside the limits of
