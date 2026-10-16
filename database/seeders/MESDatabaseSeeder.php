@@ -85,12 +85,16 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
     }
 
     /**
-     * The configurations whose source is the one of the acting service account.
+     * The configurations whose source is the one of the acting service account and is active, so a deactivated source's
+     * agent reads nothing through Core's generic reads, as the dedicated route already answers it 403.
      */
     private static function ownSourceConfigsAcl(): FiltersGroup
     {
         return new FiltersGroup([
-            new RelationFilter('source', new FiltersGroup([new Filter('user_id', '@user.id', FilterOperator::Equals)])),
+            new RelationFilter('source', new FiltersGroup([
+                new Filter('user_id', '@user.id', FilterOperator::Equals),
+                new Filter('is_active', true, FilterOperator::Equals),
+            ])),
         ]);
     }
 

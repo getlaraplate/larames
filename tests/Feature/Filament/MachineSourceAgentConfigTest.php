@@ -193,6 +193,28 @@ it('activates an older version by publishing it again as a new one', function ()
         ->assertTableActionVisible('activate', $first);
 });
 
+it('shows the errors of a stored version the validator now refuses on activation and publishes nothing', function (): void {
+    $source = MachineSource::factory()->create();
+    $service = resolve(MachineAgentConfigService::class);
+    $service->publish($source, agentConfigText());
+    $refused = MachineAgentConfig::factory()->create([
+        'source_id' => $source->id,
+        'version' => 1000,
+        'document' => (object) ['schema' => 'other/9', 'inputs' => [], 'outputs' => []],
+    ]);
+
+    agentConfigsManager($source->fresh())
+        ->callAction(TestAction::make('activate')->table($refused))
+        ->assertNotified(__('mes.messages.configurationNotPublished'));
+
+    $source->refresh();
+
+    expect($source->agentConfigs()->count())->toBe(2)
+        ->and($source->active_config_id)->not->toBe($refused->id)
+        ->and($source->activeConfig->version)->toBe(1)
+        ->and($source->last_config_version)->toBe(1);
+});
+
 it('offers no activate action on the active version', function (): void {
     $source = MachineSource::factory()->create();
     $active = resolve(MachineAgentConfigService::class)->publish($source, agentConfigText());

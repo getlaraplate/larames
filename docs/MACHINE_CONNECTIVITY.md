@@ -78,10 +78,10 @@ the account. Use TLS. The route has no alias: the path the first steps used is g
 
 - A **service account** is a non-interactive user (`users.is_service_account`): no password, no panel, tokens only.
   Create it in the Core user resource.
-- Give it the `api` role **`mes-machine-agent`**, which `MESDatabaseSeeder` creates. The role holds exactly three
+- Give it the `api` role **`mes-machine-agent`**, which `MESDatabaseSeeder` creates. The seeder grants the role three
   `api` permissions, one per route of this chapter: `insert` on `mes_machine_messages`, `select` on
   `mes_machine_agent_configs` and `insert` on `mes_machine_agent_config_reports`. Re-seeding grants them again and
-  never takes away what an administrator added.
+  never takes away what an administrator added, so a role an administrator widened holds more.
 - Link it to a source: the source form offers only service accounts. **One source per service account**
   (`mes_machine_sources.user_id` is unique, and the unique link counts soft-deleted sources, so a deleted source
   keeps its account until the source is removed for good). A token of a user that is not a source's service
@@ -111,7 +111,10 @@ logged.
 **Generic CRUD writes are refused.** `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` deny every write
 through Core's generic CRUD (`insert/{module}/{entity}` under any spelling of the path), so the `insert` permission
 of the agent role opens the dedicated route and nothing else. The `select` on the configurations also opens
-Core's generic reads of that table, so the role carries an ACL that narrows them to the versions of the caller's own source.
+Core's generic reads of that table, so the role carries an ACL that narrows them to the versions of the caller's own source, and only while that source
+is active: an inactive source's agent reads no row there, as the dedicated route answers it `403`. The seeder creates
+that ACL once and never overwrites it, so an installation seeded before this rule keeps the older ACL (own source only)
+until the filter `is_active = true` is added to its relation filter or the ACL is recreated.
 
 **The API switch and the rate limits.** The routes are `/api` routes: while the Core `expose_api` setting is off (the
 default) they answer `403`, so an installation that receives machine data must turn the API on. Two limits apply:
@@ -543,7 +546,9 @@ present, an integer of at least 1 (the backend overwrites it); `inputs` and `out
 each a JSON array of objects with a non-empty string `id`. Errors name their path (`inputs.0.id: ...`). The agent's
 full schema is not published yet: the module keeps this structural copy in
 `resources/edge/laraplate-edge-config-1.schema.json`, to be replaced by the agent's own schema when it exists. The
-document is stored and served exactly as published: an empty object stays `{}`, never `[]`.
+document is stored and served as the same JSON value it was published as: an empty object stays `{}`, never `[]`, on
+every database engine. It is the value that is kept, not the bytes: MySQL's `JSON` column may reorder the keys of an
+object and keeps only the last of duplicate keys, which carries no meaning for a schema-validating agent.
 
 **Secrets never travel in the document.** Credentials are `secret://` references that the agent resolves on its own
 machine; the backend holds no secret value.

@@ -69,7 +69,7 @@ it('seeds the machine agent role on the api guard with the three machine route p
         ->and($roles->sole()->permissions()->pluck('guard_name')->unique()->all())->toBe(['api']);
 });
 
-it('narrows the machine agent role to the configurations of its own source', function (): void {
+it('narrows the machine agent role to the configurations of its own active source', function (): void {
     Artisan::call('permission:refresh', ['--quiet' => true]);
 
     $this->seed(MESDatabaseSeeder::class);
@@ -81,7 +81,10 @@ it('narrows the machine agent role to the configurations of its own source', fun
     expect($acl->is_active)->toBeTrue()
         ->and($acl->unrestricted)->toBeFalse()
         ->and($acl->filters->toArray())->toBe((new FiltersGroup([
-            new RelationFilter('source', new FiltersGroup([new Filter('user_id', '@user.id', FilterOperator::Equals)])),
+            new RelationFilter('source', new FiltersGroup([
+                new Filter('user_id', '@user.id', FilterOperator::Equals),
+                new Filter('is_active', true, FilterOperator::Equals),
+            ])),
         ]))->toArray());
 });
 

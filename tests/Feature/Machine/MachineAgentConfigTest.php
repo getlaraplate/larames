@@ -619,6 +619,25 @@ it('shows the agent only the configurations of its own source through the generi
         ->and((string) $foreign_detail->getContent())->not->toContain('"id":' . $foreign->id);
 });
 
+it('shows the agent of an inactive source nothing through the generic CRUD reads, and an active one its own', function (): void {
+    [$source, $token] = agentConfigSource();
+    $own = agentConfigService()->publish($source, agentConfigDocument());
+    $headers = ['Authorization' => "Bearer {$token}"];
+    $detail = '/api/v1/detail/MES/machine-agent-configs?' . http_build_query(['id' => $own->id]);
+
+    expect(collect(test()->getJson('/api/v1/select/mes/machine-agent-configs', $headers)->assertOk()->json('data'))->pluck('id')->all())->toBe([$own->id]);
+    test()->getJson($detail, $headers)->assertOk();
+
+    $source->forceFill(['is_active' => false])->saveQuietly();
+
+    expect(test()->getJson('/api/v1/select/mes/machine-agent-configs', $headers)->assertOk()->json('data'))->toBe([]);
+
+    $inactive_detail = test()->getJson($detail, $headers);
+
+    expect($inactive_detail->status())->toBeIn([403, 404])
+        ->and((string) $inactive_detail->getContent())->not->toContain('"id":' . $own->id);
+});
+
 it('refuses the generic CRUD writes on configurations and reports, even to a role widened to them', function (string $method, string $uri, Closure $body): void {
     [$source, $token] = agentConfigSource();
     $config = agentConfigService()->publish($source, agentConfigDocument());

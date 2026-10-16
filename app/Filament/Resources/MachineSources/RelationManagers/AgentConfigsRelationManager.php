@@ -195,7 +195,17 @@ final class AgentConfigsRelationManager extends RelationManager
             ->modalDescription(__('mes.help.activateConfiguration'))
             ->visible(fn (MachineAgentConfig $record): bool => $record->getKey() !== $this->source()->active_config_id && $this->mayChangeSource())
             ->action(function (MachineAgentConfig $record): void {
-                $config = resolve(MachineAgentConfigService::class)->activate($record, $this->author());
+                try {
+                    $config = resolve(MachineAgentConfigService::class)->activate($record, $this->author());
+                } catch (ValidationException $validationException) {
+                    Notification::make()
+                        ->title(__('mes.messages.configurationNotPublished'))
+                        ->body(implode("\n", $validationException->errors()['document'] ?? []))
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
 
                 $this->source()->refresh();
 

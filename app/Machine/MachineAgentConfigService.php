@@ -52,9 +52,10 @@ final readonly class MachineAgentConfigService
      * Stores the document as the source's next version and makes it the active one.
      *
      * The document is a JSON text or the tree `json_decode($text, false)` gives, so an empty object stays `{}` and an
-     * object with numeric keys stays an object: it is stored and served exactly as published, plus its `version`. The
-     * given tree is never changed. The number comes from the source's `last_config_version`, read and raised under the
-     * lock of the source row, so it never repeats, even inside an outer transaction or after a version row is gone.
+     * object with numeric keys stays an object: it is stored and served as the same JSON value (not byte for byte: MySQL's
+     * `JSON` column may reorder object keys), plus its `version`. The given tree is never changed. The number comes from
+     * the source's `last_config_version`, read and raised under the lock of the source row, so it never repeats, even
+     * inside an outer transaction or after a version row is gone.
      *
      * @throws ValidationException under the `document` key, with the errors of {@see self::validate()}
      */
