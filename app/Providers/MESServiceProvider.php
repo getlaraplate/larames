@@ -149,6 +149,8 @@ final class MESServiceProvider extends ModuleServiceProvider
 
         RateLimiter::for('mes-machine-ingest', static fn (Request $request): Limit => Limit::perMinute(config()->integer('mes.machine.rate_limit_per_minute'))
             ->by(self::machineIngestLimiterKey($request)));
+        RateLimiter::for('mes-machine-agent-config', static fn (Request $request): Limit => Limit::perMinute(config()->integer('mes.machine.config_rate_limit_per_minute'))
+            ->by(self::machineIngestLimiterKey($request)));
 
         resolve(MesDomainActionRegistrar::class)->register(resolve(DomainActionRegistry::class));
 
@@ -209,8 +211,9 @@ final class MESServiceProvider extends ModuleServiceProvider
     }
 
     /**
-     * One ingest budget per service account, whichever of its tokens the agent sends. The route resolves the source
-     * before the limiter runs, so the user is always the authenticated account there.
+     * One budget per service account, whichever of its tokens the agent sends: for the ingest, and another for the
+     * configuration routes. The routes resolve the source before the limiter runs, so the user is always the
+     * authenticated account there.
      */
     private static function machineIngestLimiterKey(Request $request): string
     {

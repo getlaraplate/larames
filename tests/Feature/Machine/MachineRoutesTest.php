@@ -76,6 +76,13 @@ it('counts the ingest limit in the cache store under the test runner, never in R
         ->and($middleware)->not->toContain(ThrottleRequestsWithRedis::class . ':mes-machine-ingest');
 });
 
+it('counts the configuration limit per service account in the cache store under the test runner', function (string $name): void {
+    $middleware = Route::gatherRouteMiddleware(Route::getRoutes()->getByName($name));
+
+    expect($middleware)->toContain(ThrottleRequests::class . ':mes-machine-agent-config')
+        ->and($middleware)->not->toContain(ThrottleRequestsWithRedis::class . ':mes-machine-agent-config');
+})->with(['mes.api.machine-agent-configs.detail', 'mes.api.machine-agent-config-reports.insert']);
+
 it('no longer serves the old ingest path', function (): void {
     CrudApiExposure::enable();
 

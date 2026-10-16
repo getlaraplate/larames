@@ -37,7 +37,7 @@ final class MachineAgentConfigFactory extends Factory
             'company_id' => $this->defaultCompanyId(),
             'source_id' => MachineSource::factory(),
             'version' => $version,
-            'document' => [
+            'document' => (object) [
                 'schema' => 'laraplate-edge-config/1',
                 'version' => $version,
                 'inputs' => [],

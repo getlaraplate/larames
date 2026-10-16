@@ -14,10 +14,12 @@ use Modules\Core\Models\User;
 use Modules\ERP\Concerns\BelongsToCompany;
 use Modules\MES\Database\Factories\MachineAgentConfigFactory;
 use Override;
+use stdClass;
 
 /**
  * One version of the `laraplate-edge-config/1` document of a machine source. The document is stored as published
- * and never interpreted beyond its structure; its `version` field always equals the stored version.
+ * and never interpreted beyond its structure; its `version` field always equals the stored version. It is cast as a
+ * JSON tree (`stdClass`), so an empty object and an object with numeric keys are served back as objects, not lists.
  *
  * Written only by {@see \Modules\MES\Machine\MachineAgentConfigService}, which numbers the versions and validates
  * the structure: the generic CRUD refuses every write, and the `select` permission the machine agents hold reads
@@ -27,7 +29,7 @@ use Override;
  * @property int $company_id
  * @property int $source_id
  * @property int $version
- * @property array<string, mixed> $document
+ * @property stdClass $document
  * @property ?int $created_by
  * @property ?\Illuminate\Support\Carbon $created_at
  * @property ?\Illuminate\Support\Carbon $updated_at
@@ -87,7 +89,7 @@ final class MachineAgentConfig extends Model implements RestrictsCrudWrites
     {
         return [
             'version' => 'integer',
-            'document' => 'array',
+            'document' => 'object',
             'created_by' => 'integer',
         ];
     }

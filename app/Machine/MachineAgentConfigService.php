@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Modules\MES\Machine;
 
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use JsonException;
 use Modules\Core\Models\User;
 use Modules\MES\Enums\MachineAgentConfigOutcome;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Models\MachineAgentConfig;
 use Modules\MES\Models\MachineAgentConfigReport;
 use Modules\MES\Models\MachineSource;
+use stdClass;
 
 /**
  * Publishes, activates and records the outcome of the `laraplate-edge-config/1` documents of the machine sources.
  *
  * Versions only grow: the agent refuses a document older than the one it applied, so the backend numbers every
- * published document `max + 1` per source, writes that number into the document's `version` field, and
+ * published document with the next number of its source, writes that number into the document's `version` field, and
  * "activating an earlier version" publishes its document again as the next version. The document is checked for
  * structure only ({@see self::validate()}, mirroring `resources/edge/laraplate-edge-config-1.schema.json`); driver
  * fields are never interpreted. A failed apply the agent reports opens a `config_rejected` incident.
@@ -34,40 +34,55 @@ final readonly class MachineAgentConfigService
 
     public const int MAX_REPORT_ERROR_LENGTH = 1000;
 
+    /**
+     * @var list<string>
+     */
+    private const array TOP_LEVEL_KEYS = ['schema', 'version', 'inputs', 'outputs', 'plugins'];
+
+    /**
+     * The component lists of a document, and whether each is required.
+     *
+     * @var array<string, bool>
+     */
+    private const array COMPONENT_LISTS = ['inputs' => true, 'outputs' => true, 'plugins' => false];
+
     public function __construct(private MachineIncidentRecorder $incidents) {}
 
     /**
      * Stores the document as the source's next version and makes it the active one.
      *
-     * @param  array<string, mixed>  $document
+     * The document is a JSON text or the tree `json_decode($text, false)` gives, so an empty object stays `{}` and an
+     * object with numeric keys stays an object: it is stored and served exactly as published, plus its `version`. The
+     * given tree is never changed. The number comes from the source's `last_config_version`, read and raised under the
+     * lock of the source row, so it never repeats, even inside an outer transaction or after a version row is gone.
      *
      * @throws ValidationException under the `document` key, with the errors of {@see self::validate()}
      */
-    public function publish(MachineSource $source, array $document, ?User $author = null): MachineAgentConfig
+    public function publish(MachineSource $source, stdClass|string $document, ?User $author = null): MachineAgentConfig
     {
-        $errors = $this->validate($document);
+        $tree = self::tree($document);
+        $errors = $tree instanceof stdClass ? $this->structuralErrors($tree) : [$tree];
 
-        if ($errors !== []) {
+        if (! $tree instanceof stdClass || $errors !== []) {
             throw ValidationException::withMessages(['document' => $errors]);
         }
 
-        return $source->getConnection()->transaction(function () use ($source, $document, $author): MachineAgentConfig {
-            MachineSource::query()->withoutGlobalScopes()->whereKey($source->getKey())->lockForUpdate()->first();
-
-            $latest = MachineAgentConfig::query()->withoutGlobalScopes()->where('source_id', $source->id)->max('version');
-            $version = (is_numeric($latest) ? (int) $latest : 0) + 1;
-            $document['version'] = $version;
+        return $source->getConnection()->transaction(function () use ($source, $tree, $author): MachineAgentConfig {
+            $locked = MachineSource::query()->withoutGlobalScopes()->whereKey($source->getKey())->lockForUpdate()->firstOrFail();
+            $version = $locked->last_config_version + 1;
+            $tree->version = $version;
 
             $config = MachineAgentConfig::query()->create([
                 'company_id' => $source->company_id,
                 'source_id' => $source->id,
                 'version' => $version,
-                'document' => $document,
+                'document' => $tree,
                 'created_by' => $author?->getKey(),
             ]);
 
-            MachineSource::query()->withoutGlobalScopes()->whereKey($source->getKey())->update(['active_config_id' => $config->id]);
-            $source->forceFill(['active_config_id' => $config->id])->syncOriginalAttribute('active_config_id');
+            $pointers = ['active_config_id' => $config->id, 'last_config_version' => $version];
+            MachineSource::query()->withoutGlobalScopes()->whereKey($source->getKey())->update($pointers);
+            $source->forceFill($pointers)->syncOriginalAttributes(array_keys($pointers));
             $source->unsetRelation('activeConfig');
 
             return $config;
@@ -76,7 +91,8 @@ final readonly class MachineAgentConfigService
 
     /**
      * Makes a version the active one. The active version is returned as it is; any other is published again as the
-     * source's next version, so a polling agent always receives a higher version number.
+     * source's next version, document untouched but for its `version`, so a polling agent always receives a higher
+     * version number.
      */
     public function activate(MachineAgentConfig $config, ?User $author = null): MachineAgentConfig
     {
@@ -90,44 +106,18 @@ final readonly class MachineAgentConfigService
     }
 
     /**
-     * The structural errors of a document, empty when it may be published: the top-level keys, the schema name, an
-     * integer version when present (the backend writes it on publish), and `inputs`, `outputs` and the optional
-     * `plugins` as lists of objects, each with a non-empty string `id`.
+     * The structural errors of a document (JSON text or tree, as {@see self::publish()} takes it), empty when it may
+     * be published: a JSON object with only the known top-level keys, the schema name, an integer version of at least
+     * 1 when present (the backend writes it on publish), and `inputs`, `outputs` and the optional `plugins` as JSON
+     * arrays of objects, each with a non-empty string `id`. Each error starts with the path it names.
      *
-     * @param  array<mixed>  $document
      * @return list<string>
      */
-    public function validate(array $document): array
+    public function validate(stdClass|string $document): array
     {
-        $errors = [];
+        $tree = self::tree($document);
 
-        foreach (array_keys($document) as $key) {
-            if (! in_array($key, ['schema', 'version', 'inputs', 'outputs', 'plugins'], true)) {
-                $errors[] = "The key {$key} is not part of a " . self::SCHEMA . ' document.';
-            }
-        }
-
-        $validator = Validator::make($document, [
-            'schema' => ['required', Rule::in([self::SCHEMA])],
-            'version' => ['sometimes', 'integer:strict', 'min:1'],
-            'inputs' => ['present', 'list'],
-            'outputs' => ['present', 'list'],
-            'plugins' => ['sometimes', 'list'],
-            'inputs.*' => ['array'],
-            'outputs.*' => ['array'],
-            'plugins.*' => ['array'],
-            'inputs.*.id' => ['required', 'string', 'min:1'],
-            'outputs.*.id' => ['required', 'string', 'min:1'],
-            'plugins.*.id' => ['required', 'string', 'min:1'],
-        ]);
-
-        foreach ($validator->errors()->messages() as $field => $messages) {
-            foreach ($messages as $message) {
-                $errors[] = "{$field}: {$message}";
-            }
-        }
-
-        return $errors;
+        return $tree instanceof stdClass ? $this->structuralErrors($tree) : [$tree];
     }
 
     /**
@@ -159,5 +149,74 @@ final readonly class MachineAgentConfigService
 
             return $report;
         });
+    }
+
+    /**
+     * A private copy of the document's JSON tree, objects kept as objects; or the error that keeps the document from
+     * being one.
+     */
+    private static function tree(stdClass|string $document): stdClass|string
+    {
+        try {
+            $tree = json_decode(is_string($document) ? $document : json_encode($document, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return 'document: The document is not valid JSON.';
+        }
+
+        return $tree instanceof stdClass ? $tree : 'document: The document must be a JSON object.';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function structuralErrors(stdClass $tree): array
+    {
+        $errors = [];
+
+        foreach (array_keys(get_object_vars($tree)) as $key) {
+            if (! in_array($key, self::TOP_LEVEL_KEYS, true)) {
+                $errors[] = "{$key}: The key is not part of a " . self::SCHEMA . ' document.';
+            }
+        }
+
+        if (($tree->schema ?? null) !== self::SCHEMA) {
+            $errors[] = 'schema: The schema must be ' . self::SCHEMA . '.';
+        }
+
+        if (property_exists($tree, 'version') && (! is_int($tree->version) || $tree->version < 1)) {
+            $errors[] = 'version: The version must be an integer of at least 1.';
+        }
+
+        foreach (self::COMPONENT_LISTS as $list => $required) {
+            if (! property_exists($tree, $list)) {
+                if ($required) {
+                    $errors[] = "{$list}: The {$list} field is required.";
+                }
+
+                continue;
+            }
+
+            $items = $tree->{$list};
+
+            if (! is_array($items) || ! array_is_list($items)) {
+                $errors[] = "{$list}: The {$list} must be a JSON array.";
+
+                continue;
+            }
+
+            foreach ($items as $index => $item) {
+                if (! $item instanceof stdClass) {
+                    $errors[] = "{$list}.{$index}: The {$list}.{$index} must be a JSON object.";
+
+                    continue;
+                }
+
+                if (! is_string($item->id ?? null) || $item->id === '') {
+                    $errors[] = "{$list}.{$index}.id: The {$list}.{$index}.id must be a non-empty string.";
+                }
+            }
+        }
+
+        return $errors;
     }
 }

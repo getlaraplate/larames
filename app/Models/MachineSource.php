@@ -36,6 +36,7 @@ use Override;
  * @property ?int $last_seq
  * @property bool $is_active
  * @property ?int $active_config_id
+ * @property int $last_config_version
  */
 final class MachineSource extends Model
 {
@@ -79,6 +80,7 @@ final class MachineSource extends Model
         'protocol_version' => '1',
         'heartbeat_timeout_seconds' => 120,
         'is_active' => true,
+        'last_config_version' => 0,
     ];
 
     /**
@@ -157,7 +159,7 @@ final class MachineSource extends Model
 
     /**
      * The configuration version the source's edge agent is served. Changed only by
-     * {@see \Modules\MES\Machine\MachineAgentConfigService}, so it is not fillable.
+     * {@see \Modules\MES\Machine\MachineAgentConfigService}, like `last_config_version`, so neither is fillable.
      *
      * @return BelongsTo<MachineAgentConfig, $this>
      */
@@ -190,17 +192,21 @@ final class MachineSource extends Model
         return $this->hasMany(MachineDevice::class, 'source_id');
     }
 
+    /**
+     * Deletes the source in one transaction with what {@see self::performDeleteOnModel()} does first, so a failed
+     * delete keeps the source's active version.
+     */
+    #[Override]
+    public function delete(): ?bool
+    {
+        return $this->getConnection()->transaction(fn (): ?bool => parent::delete());
+    }
+
     #[Override]
     protected static function booted(): void
     {
         self::saving(static function (self $source): void {
             $source->assertTopicIsUsable();
-        });
-
-        // The source and its active version reference each other: clearing the pointer first keeps a database from
-        // cascading the delete of the versions back onto the row being deleted.
-        self::forceDeleting(static function (self $source): void {
-            self::query()->withoutGlobalScopes()->whereKey($source->getKey())->update(['active_config_id' => null]);
         });
     }
 
@@ -226,7 +232,23 @@ final class MachineSource extends Model
             'last_seq' => 'integer',
             'is_active' => 'boolean',
             'active_config_id' => 'integer',
+            'last_config_version' => 'integer',
         ];
+    }
+
+    /**
+     * A hard delete (a force delete, or any delete while soft deletes are off) first clears the pointer to the active
+     * version. The source and its versions reference each other (active version: set null; version's source: cascade),
+     * and InnoDB refuses to cascade the delete of the versions back onto the source row being deleted.
+     */
+    #[Override]
+    protected function performDeleteOnModel(): void
+    {
+        if ($this->isForceDeleting() || ! $this->softDeletesEnabledBySettings()) {
+            self::query()->withoutGlobalScopes()->whereKey($this->getKey())->update(['active_config_id' => null]);
+        }
+
+        parent::performDeleteOnModel();
     }
 
     /**

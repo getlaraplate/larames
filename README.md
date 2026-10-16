@@ -88,6 +88,7 @@ MES_MACHINE_MAX_BODY_KB=1024
 MES_MACHINE_CLOCK_SKEW_SECONDS=30
 MES_MACHINE_INBOX_RETENTION_DAYS=7
 MES_MACHINE_RATE_LIMIT_PER_MINUTE=600
+MES_MACHINE_CONFIG_RATE_LIMIT_PER_MINUTE=60
 MES_MACHINE_RAW_RETENTION_DAYS=30
 MES_MACHINE_MINUTE_AGGREGATE_RETENTION_DAYS=90
 MES_MACHINE_PROCESS_STORE=database
@@ -104,7 +105,7 @@ MES_MACHINE_MQTT_TOPIC_PREFIX=laraplate
 
 The machine variables set the config keys `mes.machine.queue`, `mes.machine.max_samples`,
 `mes.machine.max_body_kb`, `mes.machine.clock_skew_seconds`, `mes.machine.inbox_retention_days`,
-`mes.machine.rate_limit_per_minute`, `mes.machine.raw_retention_days`, `mes.machine.minute_aggregate_retention_days` and `mes.machine.process_store`; the MQTT ones set `mes.machine.mqtt.host`, `mes.machine.mqtt.port`, `mes.machine.mqtt.username`, `mes.machine.mqtt.password`, `mes.machine.mqtt.tls`, `mes.machine.mqtt.client_id` and `mes.machine.mqtt.topic_prefix`. The machine queue (`mes-machine`) needs its own Horizon supervisor;
+`mes.machine.rate_limit_per_minute`, `mes.machine.config_rate_limit_per_minute` (configuration polls and apply reports of the edge agent, per source and minute), `mes.machine.raw_retention_days`, `mes.machine.minute_aggregate_retention_days` and `mes.machine.process_store`; the MQTT ones set `mes.machine.mqtt.host`, `mes.machine.mqtt.port`, `mes.machine.mqtt.username`, `mes.machine.mqtt.password`, `mes.machine.mqtt.tls`, `mes.machine.mqtt.client_id` and `mes.machine.mqtt.topic_prefix`. The machine queue (`mes-machine`) needs its own Horizon supervisor;
 incident notifications go to the roles under `mes.notifications.machine_incident`.
 
 The receiving warehouse for auto-created production orders is resolved per company.

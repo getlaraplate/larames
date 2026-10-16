@@ -13,6 +13,10 @@ use Modules\MES\Enums\MESTables;
 
 return new class extends Migration
 {
+    /**
+     * The foreign key of `active_config_id` is declared by the configurations create migration, which runs after this
+     * one. `last_config_version` is the last number given to a configuration of the source: never reused.
+     */
     public function up(): void
     {
         $table_name = MESTables::MachineSources->value;
@@ -31,8 +35,8 @@ return new class extends Migration
             $table->dateTime('last_seen_at')->nullable();
             $table->unsignedBigInteger('last_seq')->nullable();
             $table->boolean('is_active')->default(true);
-            // The foreign key to the configurations is declared by their create migration, which runs after this one.
             $table->unsignedBigInteger('active_config_id')->nullable()->index("{$table_name}_active_config_id_IDX");
+            $table->unsignedInteger('last_config_version')->default(0);
 
             MigrateUtils::timestamps($table, hasCreateUpdate: true, hasSoftDelete: true);
 

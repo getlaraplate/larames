@@ -32,12 +32,12 @@ beforeEach(function (): void {
 });
 
 /**
- * A structurally valid `laraplate-edge-config/1` document.
+ * The fields of a structurally valid `laraplate-edge-config/1` document.
  *
  * @param  array<string, mixed>  $overrides
  * @return array<string, mixed>
  */
-function agentConfigDocument(array $overrides = []): array
+function agentConfigFields(array $overrides = []): array
 {
     return [
         'schema' => 'laraplate-edge-config/1',
@@ -51,6 +51,26 @@ function agentConfigDocument(array $overrides = []): array
         'plugins' => [['id' => 'fanuc', 'path' => '/opt/laraplate-edge/plugins/fanuc-focas', 'sha256' => 'abc']],
         ...$overrides,
     ];
+}
+
+/**
+ * The JSON tree of some fields, as `json_decode($text, false)` gives it: objects stay objects, lists stay lists.
+ *
+ * @param  array<string, mixed>  $fields
+ */
+function agentConfigTree(array $fields): stdClass
+{
+    return json_decode(json_encode($fields, JSON_THROW_ON_ERROR), false, 512, JSON_THROW_ON_ERROR);
+}
+
+/**
+ * A structurally valid `laraplate-edge-config/1` document as a JSON tree.
+ *
+ * @param  array<string, mixed>  $overrides
+ */
+function agentConfigDocument(array $overrides = []): stdClass
+{
+    return agentConfigTree(agentConfigFields($overrides));
 }
 
 function agentConfigService(): MachineAgentConfigService
@@ -144,7 +164,7 @@ it('numbers the published documents 1, 2, 3, writes the number into each and act
     $third = agentConfigService()->publish($source, agentConfigDocument());
 
     expect([$first->version, $second->version, $third->version])->toBe([1, 2, 3])
-        ->and([$first->fresh()->document['version'], $second->fresh()->document['version'], $third->fresh()->document['version']])->toBe([1, 2, 3])
+        ->and([$first->fresh()->document->version, $second->fresh()->document->version, $third->fresh()->document->version])->toBe([1, 2, 3])
         ->and($first->created_by)->toBe($author->id)
         ->and($second->created_by)->toBeNull()
         ->and($first->company_id)->toBe($source->company_id)
@@ -163,7 +183,7 @@ it('numbers the versions of each source on their own', function (): void {
     expect(agentConfigService()->publish($second_source, agentConfigDocument())->version)->toBe(1);
 });
 
-it('refuses a document that is not structurally a laraplate-edge-config/1 document and stores nothing', function (array $document, string $expected_error): void {
+it('refuses a document that is not structurally a laraplate-edge-config/1 document and stores nothing', function (stdClass|string $document, string $expected_error): void {
     $source = MachineSource::factory()->create();
     $active = agentConfigService()->publish($source, agentConfigDocument());
 
@@ -184,7 +204,7 @@ it('refuses a document that is not structurally a laraplate-edge-config/1 docume
         ->and($source->fresh()->active_config_id)->toBe($active->id);
 })->with([
     'another schema' => [agentConfigDocument(['schema' => 'laraplate-edge-config/2']), 'schema'],
-    'no schema' => [array_diff_key(agentConfigDocument(), ['schema' => true]), 'schema'],
+    'no schema' => [agentConfigTree(array_diff_key(agentConfigFields(), ['schema' => true])), 'schema'],
     'inputs not a list' => [agentConfigDocument(['inputs' => ['press-line' => ['id' => 'press-line']]]), 'inputs'],
     'inputs a string' => [agentConfigDocument(['inputs' => 'press-line']), 'inputs'],
     'an input without id' => [agentConfigDocument(['inputs' => [['driver' => 'opcua']]]), 'inputs.0.id'],
@@ -192,14 +212,19 @@ it('refuses a document that is not structurally a laraplate-edge-config/1 docume
     'an input that is not an object' => [agentConfigDocument(['inputs' => ['press-line']]), 'inputs.0'],
     'an output without id' => [agentConfigDocument(['outputs' => [['type' => 'laraplate-http']]]), 'outputs.0.id'],
     'a plugin with an empty id' => [agentConfigDocument(['plugins' => [['id' => '']]]), 'plugins.0.id'],
-    'no outputs' => [array_diff_key(agentConfigDocument(), ['outputs' => true]), 'outputs'],
+    'no outputs' => [agentConfigTree(array_diff_key(agentConfigFields(), ['outputs' => true])), 'outputs'],
     'an unknown top-level key' => [agentConfigDocument(['metrics' => []]), 'metrics'],
     'a version that is not an integer' => [agentConfigDocument(['version' => '3']), 'version'],
+    'inputs as an object with numeric keys' => ['{"schema":"laraplate-edge-config/1","inputs":{"0":{"id":"a"}},"outputs":[]}', 'inputs'],
+    'an input as a list' => ['{"schema":"laraplate-edge-config/1","inputs":[["a"]],"outputs":[]}', 'inputs.0'],
+    'text that is not JSON' => ['{"schema":', 'document'],
+    'a JSON list' => ['[]', 'document'],
 ]);
 
 it('finds no error in a valid document, with or without plugins and version', function (): void {
     expect(agentConfigService()->validate(agentConfigDocument()))->toBe([])
-        ->and(agentConfigService()->validate(array_diff_key(agentConfigDocument(), ['plugins' => true])))->toBe([])
+        ->and(agentConfigService()->validate(agentConfigTree(array_diff_key(agentConfigFields(), ['plugins' => true]))))->toBe([])
+        ->and(agentConfigService()->validate((string) json_encode(agentConfigDocument())))->toBe([])
         ->and(agentConfigService()->validate(agentConfigDocument(['version' => 12])))->toBe([])
         ->and(agentConfigService()->validate(agentConfigDocument(['inputs' => [], 'outputs' => []])))->toBe([]);
 });
@@ -229,11 +254,11 @@ it('activates an older version by publishing its document again as the next vers
     expect($activated->version)->toBe(4)
         ->and($activated->is($first))->toBeFalse()
         ->and($activated->created_by)->toBe($author->id)
-        ->and($activated->document)->toBe([...$first->document, 'version' => 4])
-        ->and($activated->document['inputs'])->toBe([['id' => 'old-line']])
+        ->and($activated->document)->toEqual(agentConfigTree([...(array) json_decode((string) json_encode($first->document), true), 'version' => 4]))
+        ->and($activated->document->inputs)->toEqual([agentConfigTree(['id' => 'old-line'])])
         ->and($source->fresh()->active_config_id)->toBe($activated->id)
         ->and($first->fresh()->version)->toBe(1)
-        ->and($first->fresh()->document['version'])->toBe(1)
+        ->and($first->fresh()->document->version)->toBe(1)
         ->and(MachineAgentConfig::query()->count())->toBe(4);
 });
 
@@ -245,14 +270,104 @@ it('leaves the active version as it is when it is activated again', function ():
         ->and(MachineAgentConfig::query()->count())->toBe(1);
 });
 
-it('lets a source with an active configuration be deleted for good', function (): void {
+it('keeps numbering from the counter of the source, so a version number is never given twice', function (): void {
     $source = MachineSource::factory()->create();
     agentConfigService()->publish($source, agentConfigDocument());
+    $second = agentConfigService()->publish($source, agentConfigDocument());
+    MachineAgentConfig::query()->whereKey($second->id)->delete();
+
+    $third = $source->getConnection()->transaction(static function () use ($source): MachineAgentConfig {
+        agentConfigService()->publish($source, agentConfigDocument());
+
+        return agentConfigService()->publish($source, agentConfigDocument());
+    });
+
+    expect($third->version)->toBe(4)
+        ->and($third->document->version)->toBe(4)
+        ->and(MachineAgentConfig::query()->orderBy('version')->pluck('version')->all())->toBe([1, 3, 4])
+        ->and($source->fresh()->last_config_version)->toBe(4);
+});
+
+it('stores and serves the document as published, keeping empty objects and numeric-key objects apart from lists', function (): void {
+    [$source, $token] = agentConfigSource();
+    $published = '{"schema":"laraplate-edge-config/1","inputs":[{"id":"press-line","connection":{"auth":{}},"tags":[]}],'
+        . '"outputs":[{"id":"main","route":{},"batch":{"0":"first","1":"second"}}]}';
+    $expected = mb_substr($published, 0, -1) . ',"version":1}';
+
+    $config = agentConfigService()->publish($source, $published);
+    $body = (string) agentConfigPoll($token)->assertOk()->getContent();
+
+    expect($config->fresh()->document)->toEqual(json_decode($expected, false))
+        ->and($body)->toContain('"auth":{}')
+        ->and($body)->toContain('"route":{}')
+        ->and($body)->toContain('"tags":[]')
+        ->and($body)->toContain('"batch":{"0":"first","1":"second"}')
+        ->and(json_decode($body, false))->toEqual(json_decode('{"version":1,"document":' . $expected . '}', false));
+
+    agentConfigService()->publish($source, agentConfigDocument());
+    agentConfigService()->activate($config);
+
+    $reactivated = (string) agentConfigPoll($token)->assertOk()->getContent();
+
+    expect($reactivated)->toContain('"auth":{}')
+        ->and($reactivated)->toContain('"route":{}')
+        ->and($reactivated)->toContain('"batch":{"0":"first","1":"second"}')
+        ->and(json_decode($reactivated, false)->document->version)->toBe(3)
+        ->and($config->fresh()->document->version)->toBe(1);
+});
+
+it('does not change the document it is given', function (): void {
+    $source = MachineSource::factory()->create();
+    $document = agentConfigDocument();
+
+    agentConfigService()->publish($source, $document);
+
+    expect($document)->toEqual(agentConfigDocument())
+        ->and(property_exists($document, 'version'))->toBeFalse();
+});
+
+it('clears the active version before a hard delete of the source, in the transaction of the delete', function (): void {
+    $source = MachineSource::factory()->create();
+    agentConfigService()->publish($source, agentConfigDocument());
+    $connection = $source->getConnection();
+    $connection->flushQueryLog();
+    $connection->enableQueryLog();
 
     $source->forceDelete();
 
-    expect(MachineSource::query()->withoutGlobalScopes()->withTrashed()->count())->toBe(0)
+    $statements = array_column($connection->getQueryLog(), 'query');
+    $connection->disableQueryLog();
+    $cleared = array_key_first(array_filter($statements, static fn (string $sql): bool => str_starts_with(mb_strtolower($sql), 'update') && str_contains($sql, 'active_config_id')));
+    $deleted = array_key_first(array_filter($statements, static fn (string $sql): bool => str_starts_with(mb_strtolower($sql), 'delete') && str_contains($sql, 'mes_machine_sources')));
+
+    expect($cleared)->not->toBeNull()
+        ->and($deleted)->not->toBeNull()
+        ->and($cleared)->toBeLessThan($deleted)
+        ->and(MachineSource::query()->withoutGlobalScopes()->withTrashed()->count())->toBe(0)
         ->and(MachineAgentConfig::query()->count())->toBe(0);
+});
+
+it('keeps the source and its active version when its hard delete fails', function (): void {
+    $source = MachineSource::factory()->create();
+    $active = agentConfigService()->publish($source, agentConfigDocument());
+    MachineSource::deleted(static function (): void {
+        throw new RuntimeException('The delete failed.');
+    });
+
+    expect(fn () => $source->forceDelete())->toThrow(RuntimeException::class, 'The delete failed.');
+
+    expect(MachineSource::query()->withoutGlobalScopes()->whereKey($source->id)->value('active_config_id'))->toBe($active->id)
+        ->and(MachineAgentConfig::query()->count())->toBe(1);
+});
+
+it('keeps the active version through a soft delete and a restore', function (): void {
+    $source = MachineSource::factory()->create();
+    $active = agentConfigService()->publish($source, agentConfigDocument());
+
+    $source->delete();
+    $source->restore();
+
+    expect($source->fresh()->active_config_id)->toBe($active->id);
 });
 
 // --- Configuration detail ------------------------------------------------------------------------------------
@@ -263,7 +378,9 @@ it('serves the active configuration of the caller source with its version', func
     $active = agentConfigService()->publish($source, agentConfigDocument());
     agentConfigService()->publish(MachineSource::factory()->create(), agentConfigDocument());
 
-    agentConfigPoll($token)->assertOk()->assertExactJson(['version' => 2, 'document' => $active->fresh()->document]);
+    $response = agentConfigPoll($token)->assertOk();
+
+    expect($response->getContent())->toBe(json_encode(['version' => 2, 'document' => $active->fresh()->document]));
 });
 
 it('answers 304 with no body when the agent already holds the active version', function (): void {
@@ -466,6 +583,21 @@ it('refuses a service account that speaks for no source with 403', function (): 
     agentConfigReport($token, ['version' => 1, 'outcome' => 'rejected', 'errors' => [], 'agent_version' => '1'])->assertForbidden();
 });
 
+it('limits the configuration requests per service account and says when to retry', function (): void {
+    config(['mes.machine.config_rate_limit_per_minute' => 2]);
+    [$source, $token] = agentConfigSource();
+    agentConfigService()->publish($source, agentConfigDocument());
+
+    agentConfigPoll($token)->assertOk();
+    agentConfigReport($token, ['version' => 1, 'outcome' => 'applied', 'errors' => null, 'agent_version' => '1'])->assertCreated();
+
+    agentConfigPoll($token)->assertStatus(429)->assertHeader('Retry-After');
+    agentConfigReport($token, ['version' => 1, 'outcome' => 'rejected', 'errors' => null, 'agent_version' => '1'])->assertStatus(429);
+
+    expect(MachineAgentConfigReport::query()->count())->toBe(1)
+        ->and(MachineIncident::query()->count())->toBe(0);
+});
+
 // --- Generic CRUD --------------------------------------------------------------------------------------------
 
 it('shows the agent only the configurations of its own source through the generic CRUD reads', function (): void {
@@ -512,7 +644,7 @@ it('refuses the generic CRUD writes on configurations and reports, even to a rol
     test()->json($method, $uri, $body($source, $config, $report), ['Authorization' => "Bearer {$widened}"])->assertForbidden();
 
     expect(MachineAgentConfig::query()->count())->toBe(1)
-        ->and($config->fresh()->document)->toBe($config->document)
+        ->and($config->fresh()->document)->toEqual($config->document)
         ->and(MachineAgentConfigReport::query()->count())->toBe(1)
         ->and($report->fresh()->outcome)->toBe(MachineAgentConfigOutcome::Applied);
 })->with([
