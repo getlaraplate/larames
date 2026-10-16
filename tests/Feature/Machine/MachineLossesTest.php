@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Schema;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineMessageStatus;
 use Modules\MES\Enums\MachineTransport;
@@ -212,4 +213,10 @@ it('refuses an envelope with a malformed loss before storing it', function (): v
 
     expect(MachineMessage::query()->count())->toBe(0)
         ->and(droppedIncidents())->toHaveCount(0);
+});
+
+it('indexes the incidents by source, type and occurrence for the loss dedupe window', function (): void {
+    $columns = collect(Schema::getIndexes((new MachineIncident)->getTable()))->pluck('columns')->all();
+
+    expect($columns)->toContain(['source_id', 'type', 'occurred_at']);
 });

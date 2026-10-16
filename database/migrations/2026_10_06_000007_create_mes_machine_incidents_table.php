@@ -32,6 +32,7 @@ return new class extends Migration
             MigrateUtils::timestamps($table, hasCreateUpdate: true);
 
             $table->index(['source_id', 'type', 'resolved_at'], "{$table_name}_source_type_resolved_IDX");
+            $table->index(['source_id', 'type', 'occurred_at'], "{$table_name}_source_type_occurred_IDX");
             MigrateUtils::prefixIndex($table, 'company_id');
         });
     }

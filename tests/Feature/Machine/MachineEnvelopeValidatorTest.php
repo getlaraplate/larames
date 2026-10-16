@@ -34,7 +34,7 @@ it('rejects every invalid envelope fixture', function (string $file): void {
 
 it('ships the fixtures it is tested with', function (): void {
     expect(protocolFixtures('valid'))->toHaveCount(4)
-        ->and(protocolFixtures('invalid'))->toHaveCount(21);
+        ->and(protocolFixtures('invalid'))->toHaveCount(23);
 });
 
 it('counts the samples of an envelope', function (): void {
@@ -51,6 +51,13 @@ it('names the loss field of the envelope in the validator errors', function (str
     'bad from_ts' => [dirname(__DIR__, 2) . '/Fixtures/machine-protocol/invalid/loss-bad-from-ts.json', 'losses.0.from_ts'],
     'missing reason' => [dirname(__DIR__, 2) . '/Fixtures/machine-protocol/invalid/loss-missing-key.json', 'losses.0.reason'],
     'extra key' => [dirname(__DIR__, 2) . '/Fixtures/machine-protocol/invalid/loss-extra-key.json', 'losses.0'],
+]);
+
+it('refuses devices and losses sent as a JSON object map, as the schema does', function (string $file, string $field): void {
+    expect(resolve(MachineEnvelopeValidator::class)->validate(loadEnvelope($file)))->toHaveKey($field);
+})->with([
+    'devices' => [dirname(__DIR__, 2) . '/Fixtures/machine-protocol/invalid/devices-object-map.json', 'devices'],
+    'losses' => [dirname(__DIR__, 2) . '/Fixtures/machine-protocol/invalid/losses-object-map.json', 'losses'],
 ]);
 
 it('publishes the schema of the protocol', function (): void {

@@ -31,6 +31,8 @@ return new class extends Migration
             $table->dateTime('last_seen_at')->nullable();
             $table->unsignedBigInteger('last_seq')->nullable();
             $table->boolean('is_active')->default(true);
+            // The foreign key to the configurations is declared by their create migration, which runs after this one.
+            $table->unsignedBigInteger('active_config_id')->nullable()->index("{$table_name}_active_config_id_IDX");
 
             MigrateUtils::timestamps($table, hasCreateUpdate: true, hasSoftDelete: true);
 

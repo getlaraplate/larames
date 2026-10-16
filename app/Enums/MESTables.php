@@ -47,4 +47,6 @@ enum MESTables: string
     case ProcessAggregates = 'mes_process_aggregates';
     case ProcessDirtyBuckets = 'mes_process_dirty_buckets';
     case OperationProcessSummaries = 'mes_operation_process_summaries';
+    case MachineAgentConfigs = 'mes_machine_agent_configs';
+    case MachineAgentConfigReports = 'mes_machine_agent_config_reports';
 }

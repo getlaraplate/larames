@@ -6,15 +6,22 @@ namespace Modules\MES\Database\Seeders;
 
 use Modules\Core\Authorization\PermissionManifest;
 use Modules\Core\Casts\ActionEnum;
+use Modules\Core\Casts\Filter;
+use Modules\Core\Casts\FilterOperator;
+use Modules\Core\Casts\FiltersGroup;
+use Modules\Core\Casts\RelationFilter;
 use Modules\Core\Casts\SettingTypeEnum;
 use Modules\Core\Database\Seeders\CoreDatabaseSeeder;
 use Modules\Core\Database\Seeders\PermissionRefreshSeeder;
+use Modules\Core\Models\ACL;
 use Modules\Core\Models\Permission;
 use Modules\Core\Models\Role;
 use Modules\Core\Overrides\Seeder;
 use Modules\Core\Seeding\Contracts\DeclaresSeedDependencies;
 use Modules\Core\Seeding\SeedReconciler;
 use Modules\Core\Support\PermissionName;
+use Modules\MES\Models\MachineAgentConfig;
+use Modules\MES\Models\MachineAgentConfigReport;
 use Modules\MES\Models\MachineMessage;
 use Override;
 use Spatie\Permission\PermissionRegistrar;
@@ -78,6 +85,16 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
     }
 
     /**
+     * The configurations whose source is the one of the acting service account.
+     */
+    private static function ownSourceConfigsAcl(): FiltersGroup
+    {
+        return new FiltersGroup([
+            new RelationFilter('source', new FiltersGroup([new Filter('user_id', '@user.id', FilterOperator::Equals)])),
+        ]);
+    }
+
+    /**
      * Materializes this module's slice of the permission manifest.
      *
      * `permission:refresh` creates the same names from the same declaration and
@@ -99,10 +116,14 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
     }
 
     /**
-     * Creates the `api` role of the machine agents and grants it the `api` permissions of the machine routes. The
-     * permissions come from `permission:refresh`, which runs first ({@see self::dependsOn()}); one that does not exist
-     * (the seeder run on its own, outside the graph) is skipped, and the next seed after a refresh grants it. Granted without detaching on every run, so a role an
-     * operator widened keeps its grants.
+     * Creates the `api` role of the machine agents and grants it the `api` permissions of the machine routes: `insert`
+     * on the messages, `select` on the configurations and `insert` on the configuration reports. The permissions come
+     * from `permission:refresh`, which runs first ({@see self::dependsOn()}); one that does not exist (the seeder run
+     * on its own, outside the graph) is skipped, and the next seed after a refresh grants it. Granted without detaching
+     * on every run, so a role an operator widened keeps its grants.
+     *
+     * The `select` on the configurations also opens Core's generic reads of that table, so an ACL narrows the role to
+     * the versions of the caller's own source ({@see self::ownSourceConfigsAcl()}).
      */
     private function machineAgentRole(): void
     {
@@ -125,7 +146,13 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
             ]);
         }
 
-        foreach ([PermissionName::forClass(MachineMessage::class, ActionEnum::Insert->value)] as $permission_name) {
+        $permission_names = [
+            PermissionName::forClass(MachineMessage::class, ActionEnum::Insert->value),
+            PermissionName::forClass(MachineAgentConfig::class, ActionEnum::Select->value),
+            PermissionName::forClass(MachineAgentConfigReport::class, ActionEnum::Insert->value),
+        ];
+
+        foreach ($permission_names as $permission_name) {
             $permission_id = $permission_class::query()->where(['name' => $permission_name, 'guard_name' => $guard])->value('id');
 
             if ($permission_id !== null) {
@@ -133,6 +160,42 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
             }
         }
 
+        $this->ensureAcl(
+            $permission_class,
+            $role,
+            PermissionName::forClass(MachineAgentConfig::class, ActionEnum::Select->value),
+            self::ownSourceConfigsAcl(),
+            'Machine agents read only the configurations of their own source.',
+        );
+
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
+    /**
+     * Creates the ACL of a permission for a role unless one exists: a re-seed never overwrites what an operator changed.
+     * A permission that does not exist yet is skipped, like the grants of {@see self::machineAgentRole()}.
+     *
+     * @param  class-string<Permission>  $permission_class
+     */
+    private function ensureAcl(string $permission_class, Role $role, string $permission_name, FiltersGroup $filters, string $description): void
+    {
+        $permission = $permission_class::query()->where(['name' => $permission_name, 'guard_name' => $role->guard_name])->first(['id']);
+
+        if ($permission === null || ACL::query()->whereBelongsTo($permission, 'permission')->whereBelongsTo($role, 'role')->exists()) {
+            return;
+        }
+
+        $acl = new ACL;
+        $acl->setSkipValidation(true);
+        $acl->forceFill([
+            'permission_id' => $permission->id,
+            'role_id' => $role->id,
+            'filters' => $filters,
+            'description' => $description,
+            'unrestricted' => false,
+            'priority' => 100,
+            'is_active' => true,
+        ]);
+        $acl->save();
     }
 }

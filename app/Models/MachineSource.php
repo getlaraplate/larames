@@ -35,6 +35,7 @@ use Override;
  * @property ?\Illuminate\Support\Carbon $last_seen_at
  * @property ?int $last_seq
  * @property bool $is_active
+ * @property ?int $active_config_id
  */
 final class MachineSource extends Model
 {
@@ -155,6 +156,33 @@ final class MachineSource extends Model
     }
 
     /**
+     * The configuration version the source's edge agent is served. Changed only by
+     * {@see \Modules\MES\Machine\MachineAgentConfigService}, so it is not fillable.
+     *
+     * @return BelongsTo<MachineAgentConfig, $this>
+     */
+    public function activeConfig(): BelongsTo
+    {
+        return $this->belongsTo(MachineAgentConfig::class, 'active_config_id');
+    }
+
+    /**
+     * @return HasMany<MachineAgentConfig, $this>
+     */
+    public function agentConfigs(): HasMany
+    {
+        return $this->hasMany(MachineAgentConfig::class, 'source_id');
+    }
+
+    /**
+     * @return HasMany<MachineAgentConfigReport, $this>
+     */
+    public function agentConfigReports(): HasMany
+    {
+        return $this->hasMany(MachineAgentConfigReport::class, 'source_id');
+    }
+
+    /**
      * @return HasMany<MachineDevice, $this>
      */
     public function devices(): HasMany
@@ -167,6 +195,12 @@ final class MachineSource extends Model
     {
         self::saving(static function (self $source): void {
             $source->assertTopicIsUsable();
+        });
+
+        // The source and its active version reference each other: clearing the pointer first keeps a database from
+        // cascading the delete of the versions back onto the row being deleted.
+        self::forceDeleting(static function (self $source): void {
+            self::query()->withoutGlobalScopes()->whereKey($source->getKey())->update(['active_config_id' => null]);
         });
     }
 
@@ -191,6 +225,7 @@ final class MachineSource extends Model
             'last_seen_at' => 'datetime',
             'last_seq' => 'integer',
             'is_active' => 'boolean',
+            'active_config_id' => 'integer',
         ];
     }
 

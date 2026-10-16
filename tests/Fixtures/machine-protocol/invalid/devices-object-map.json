@@ -1,0 +1,19 @@
+{
+  "protocol": "laraplate-machine/1",
+  "message_id": "0192f1c4-7a2e-7c1b-9f00-3b2d5e6a7c21",
+  "source_seq": 1844,
+  "sent_at": "2026-10-05T08:16:02.120Z",
+  "devices": {
+    "press-07": {
+      "device": "press-07",
+      "type": "data",
+      "samples": [
+        {
+          "signal": "good_count",
+          "ts": "2026-10-05T08:16:01.950Z",
+          "value": 15231
+        }
+      ]
+    }
+  }
+}
