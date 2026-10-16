@@ -17,8 +17,9 @@ use Override;
 use stdClass;
 
 /**
- * One version of the `laraplate-edge-config/1` document of a machine source. The document is stored as published
- * and never interpreted beyond its structure; its `version` field always equals the stored version. It is cast as a
+ * One version of the `laraplate-edge-config/1` document of a machine source. The document is stored as the same JSON
+ * value it was published with (not the same bytes: MySQL reorders keys and keeps the last of duplicate keys) and never
+ * interpreted beyond its structure; its `version` field always equals the stored version. It is cast as a
  * JSON tree (`stdClass`), so an empty object and an object with numeric keys are served back as objects, not lists.
  *
  * Written only by {@see \Modules\MES\Machine\MachineAgentConfigService}, which numbers the versions and validates

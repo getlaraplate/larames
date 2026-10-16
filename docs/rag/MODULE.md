@@ -277,8 +277,9 @@ the foundation, with no consumer of the machine data yet.
   soft-deleted sources; only service accounts qualify). `MESDatabaseSeeder` creates the `api` role `mes-machine-agent`
   (`MACHINE_AGENT_ROLE`; the seeder `dependsOn()` `PermissionRefreshSeeder`) with `insert` on `mes_machine_messages`,
   `select` on `mes_machine_agent_configs` and `insert` on `mes_machine_agent_config_reports`, granted without detaching,
-  plus an ACL on the configurations' `select` that narrows the role to its own source (`RelationFilter` on `source`,
-  `user_id = @user.id`). `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` implement
+  plus an ACL on the configurations' `select` that narrows the role to its own active source (`RelationFilter` on
+  `source`, `user_id = @user.id` and `is_active = true`; an installation seeded before the active-source condition keeps
+  its stored ACL, which the seeder never overwrites). `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` implement
   `RestrictsCrudWrites`: Core's generic CRUD refuses their writes, so the permissions open the dedicated routes alone.
   `bootstrap/app.php` counts named limiters in Redis (`throttleWithRedis()`) except under the test runner.
 - **Job.** `ProcessMachineMessageJob` (queue `mes.machine.queue`, `WithoutOverlapping` keyed by source,
