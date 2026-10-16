@@ -14,6 +14,8 @@ use Modules\Core\Filament\Utils\HasTranslatedResourceLabels;
 use Modules\MES\Filament\Resources\MachineSources\Pages\CreateMachineSource;
 use Modules\MES\Filament\Resources\MachineSources\Pages\EditMachineSource;
 use Modules\MES\Filament\Resources\MachineSources\Pages\ListMachineSources;
+use Modules\MES\Filament\Resources\MachineSources\RelationManagers\AgentConfigReportsRelationManager;
+use Modules\MES\Filament\Resources\MachineSources\RelationManagers\AgentConfigsRelationManager;
 use Modules\MES\Filament\Resources\MachineSources\Schemas\MachineSourceForm;
 use Modules\MES\Filament\Resources\MachineSources\Tables\MachineSourcesTable;
 use Modules\MES\Models\MachineSource;
@@ -56,7 +58,10 @@ final class MachineSourceResource extends Resource
 
     public static function getRelations(): array
     {
-        return [];
+        return [
+            AgentConfigsRelationManager::class,
+            AgentConfigReportsRelationManager::class,
+        ];
     }
 
     public static function getPages(): array
