@@ -25,9 +25,27 @@ it('documents every machine configuration key and env variable in the README', f
 it('documents the protocol and the HTTP contract', function () use ($module): void {
     $document = (string) file_get_contents("{$module}/docs/MACHINE_CONNECTIVITY.md");
 
-    foreach (['laraplate-machine/1', 'api/v1/mes/machine-data', 'mes:machine-ingest', '202', '200', '401', '403', '413', '422', '429'] as $needle) {
+    foreach (['laraplate-machine/1', 'mes.api.machine-messages.insert', 'mes.api.machine-agent-configs.detail', 'mes.api.machine-agent-config-reports.insert', '202', '200', '401', '403', '413', '422', '429', '304'] as $needle) {
         expect($document)->toContain($needle);
     }
+
+    expect($document)->not->toContain('mes/machine-data')
+        ->and($document)->not->toContain('mes:machine-ingest');
+});
+
+it('documents the edge agent: service accounts, losses and configuration delivery', function () use ($module): void {
+    $document = (string) file_get_contents("{$module}/docs/MACHINE_CONNECTIVITY.md");
+
+    foreach (['service account', 'mes-machine-agent', 'allowed_cidrs', 'missing_permission', 'inactive_source', 'losses', 'data_dropped', 'config_rejected', 'rolled_back', 'laraplate-edge-config/1', 'secret://', 'config_rate_limit_per_minute', 'activation'] as $needle) {
+        expect($document)->toContain($needle);
+    }
+
+    $readme = (string) file_get_contents("{$module}/README.md");
+
+    expect($readme)->toContain('api/v1/insert/mes/machine-messages')
+        ->and($readme)->not->toContain('mes/machine-data');
+    expect((string) file_get_contents("{$module}/docs/rag/MODULE.md"))->not->toContain('mes/machine-data')
+        ->and((string) file_get_contents("{$module}/docs/MES_GUIDA_SEMPLICE.md"))->toContain('mes-machine-agent');
 });
 
 it('documents the MQTT bridge and the Sparkplug B mapping', function () use ($module): void {

@@ -165,10 +165,21 @@ prodotte le sonde per i controlli qualità e i valori di processo (temperature, 
 - Dal gruppo **Machine connectivity** del pannello crei una **sorgente** (l'agente o il gateway che invia
   i dati) e la colleghi a un **account di servizio**: un utente non interattivo, che non accede al pannello.
   Ogni account di servizio serve **una sola sorgente**, e nella scelta compaiono solo gli account di servizio.
-- Il **token** non si emette più dalla sorgente: lo emetti (e lo revochi) dalla **pagina dell'utente**
-  dell'account di servizio, dandogli i permessi `api` di ingest. Il token viene mostrato **una sola volta**:
-  copialo subito e configuralo sull'agente. Il percorso di invio dei dati è in fase di spostamento: con il
-  prossimo passo di rilascio cambierà, e la guida verrà aggiornata.
+  Una sorgente eliminata (anche solo "in cestino") tiene occupato il suo account finché non viene rimossa del tutto.
+- All'account di servizio dai il ruolo **`mes-machine-agent`** (lo crea il sistema): gli basta per inviare i dati, leggere
+  la propria configurazione e comunicare come l'ha applicata. Senza il ruolo l'agente riceve un rifiuto e compare un
+  incidente di accesso rifiutato.
+- Il **token** si emette (e si revoca) dalla **pagina dell'utente** dell'account di servizio, nella sezione dei token
+  API: puoi scegliere la scadenza e le **reti consentite** (`allowed_cidrs`), così il token funziona solo dagli indirizzi
+  della fabbrica. Il token viene mostrato **una sola volta**: copialo subito e configuralo sull'agente. L'invio dei dati
+  funziona solo se l'**API è attiva** nelle impostazioni di sistema.
+- Nella pagina della sorgente, la sezione **Configuration versions** contiene la **configurazione** che l'agente di
+  bordo scarica: con **Publish configuration** scrivi (o modifichi) il documento JSON e il sistema ne controlla la
+  struttura; ogni pubblicazione diventa una **nuova versione** e quella attiva è marcata. Per tornare a una versione
+  precedente usi **Activate**: il sistema la ripubblica come versione nuova (i numeri crescono sempre, l'agente non
+  accetta mai un numero più basso). Nel documento vanno solo **riferimenti** ai segreti (`secret://...`), mai le
+  password. La sezione **Agent reports** mostra, in sola lettura, cosa ha risposto l'agente a ogni versione:
+  applicata, rifiutata o annullata (con gli errori).
 - Una **macchina** (dispositivo) è legata a un centro di lavoro e ha dei **segnali**, ciascuno con un ruolo
   (stato, allarme, pezzi buoni, pezzi scarto, misura, valore di processo...). Un **profilo** applicato alla
   macchina le copia i segnali di un modello noto; i profili si importano ed esportano come file.
@@ -178,7 +189,10 @@ prodotte le sonde per i controlli qualità e i valori di processo (temperature, 
 - La **posta in arrivo** mostra ogni messaggio ricevuto e il suo esito; un messaggio fallito si può
   **rielaborare**, anche per un intervallo di tempo dalla pagina della sorgente.
 - Gli **incidenti** segnalano buchi nella sequenza dei messaggi, orologi sfasati, messaggi falliti,
-  accessi rifiutati e macchine che hanno smesso di inviare dati.
+  accessi rifiutati, macchine che hanno smesso di inviare dati, **dati persi** dall'agente (`data_dropped`: l'agente
+  indica quanti campioni ha dovuto scartare e fra quali orari, per esempio perché il suo buffer era pieno) e
+  **configurazioni rifiutate** (`config_rejected`: l'agente non ha potuto applicare una versione, oppure l'ha provata ed
+  è tornato alla precedente).
 
 ### Fermi e OEE dalle macchine
 

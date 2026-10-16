@@ -2,7 +2,8 @@
 
 Machines and probes push their data into the MES through the `laraplate-machine/1` protocol, over HTTP or
 through the customer's MQTT broker. This covers the foundation, the MQTT bridge and the machine states, the piece counts, the probe measurements and the process values (steps 1 to 6 of the
-machine data acquisition design): the protocol, the HTTP endpoint, the bridge and the `sparkplug_b`
+machine data acquisition design), plus the backend side of the edge agent (service accounts, configuration delivery and
+loss reports, see "Edge agent configuration"): the protocol, the HTTP endpoint, the bridge and the `sparkplug_b`
 normaliser, a durable inbox, the asynchronous pipeline with its configuration, the state history with the
 downtimes derived from it, the stored piece counts with the OEE performance and quality built on them, and
 the probe measurements that fill quality checks, the process values with their aggregates and per-operation
@@ -68,34 +69,57 @@ states, which a profile sets as its `state_map`:
 
 ## The HTTP endpoint
 
-`POST api/v1/mes/machine-data`, route name `mes.api.machine-data.ingest`. The source authenticates with
-the bearer token of its service account (Sanctum, ability `mes:machine-ingest`); the URL carries no source id. Use TLS.
+`POST api/v1/insert/mes/machine-messages`, route name `mes.api.machine-messages.insert`: the CRUD path of the
+messages it creates. The source authenticates as its **service account** with that account's bearer token
+(Core's API authentication, an `api` permission); the URL carries no source id, the source is the one linked to
+the account. Use TLS. The route has no alias: the path the first steps used is gone.
+
+### Service accounts and the agent role
+
+- A **service account** is a non-interactive user (`users.is_service_account`): no password, no panel, tokens only.
+  Create it in the Core user resource.
+- Give it the `api` role **`mes-machine-agent`**, which `MESDatabaseSeeder` creates. The role holds exactly three
+  `api` permissions, one per route of this chapter: `insert` on `mes_machine_messages`, `select` on
+  `mes_machine_agent_configs` and `insert` on `mes_machine_agent_config_reports`. Re-seeding grants them again and
+  never takes away what an administrator added.
+- Link it to a source: the source form offers only service accounts. **One source per service account**
+  (`mes_machine_sources.user_id` is unique, and the unique link counts soft-deleted sources, so a deleted source
+  keeps its account until the source is removed for good). A token of a user that is not a source's service
+  account never resolves a source, even when it holds the three permissions: `403`.
+- Issue the token on the **user page** of the service account (API tokens): name, abilities (`api` permissions the
+  account holds), expiry (a non-expiring token is allowed) and **`allowed_cidrs`**, the networks the token may be used from.
+  The token is shown once and never stored in clear. Revoke it on the same page; the next call is `401`.
+
+### Responses
 
 | Response | Meaning | Agent behaviour |
 |---|---|---|
 | `202` | accepted | drop from the buffer |
 | `200` with `duplicate: true` | already accepted | drop from the buffer |
-| `401` | unknown token | stop sending, report |
-| `403` | missing ability, inactive source, or a source that is not an HTTP canonical source | stop sending, report |
+| `401` | missing, invalid, expired or revoked token | stop sending, report |
+| `403` | the account or token lacks the permission, the address is outside `allowed_cidrs`, the account speaks for no source, the source is inactive, or it is not an HTTP canonical source | stop sending, report |
 | `413` | too many samples (`mes.machine.max_samples`) or body too large (`mes.machine.max_body_kb`) | split the batch |
 | `422` | invalid envelope; the schema errors are returned | drop, log locally |
 | `429` / `5xx` / network error | temporary | retry with backoff, honour `Retry-After` |
 
-Tokens belong to the source's service account: they are issued and revoked on the user page of the backoffice
-(API tokens), shown once, never stored in clear. A token of a user that is not a source's service account is
-refused like an unknown one. Authentication failures are logged without the token and rate limited;
-a refused source also opens an `auth_failure` incident (at most one every five minutes).
+The same `401` and `403` answer the two configuration routes below. Authentication failures are logged without the
+token. When a refusal names a source, it also opens an `auth_failure` incident, at most one every five minutes per source,
+with the reason in its detail: `missing_permission` (the source's account has no role or token ability for the
+route) or `inactive_source`. A caller that speaks for no source, and an address outside `allowed_cidrs`, are only
+logged.
 
-**The API switch and the shared address budget.** The route is an `/api` route: while the Core `expose_api`
-setting is off (the default) it answers `403`, so an installation that receives machine data must turn the API on.
-The route is marked `SelfAuthenticatedApiRoute`: the source's bearer token is not read as a Laraplate API token, the
-request runs as the anonymous user, and `AuthenticateMachineSource` authenticates it, until the machine sources move
-to service accounts. Because of that, every ingest request is also counted against Core's per-address `api` rate limit
-(`core.api.rate_limit_per_minute`, 600 a minute, shared by all `/api` requests from the same client address), on top of
-the per-token `mes-machine-ingest` throttle (`mes.machine.rate_limit_per_minute`). Gateways or agents that sit behind
-one address (a factory NAT or a shared proxy) share that single per-address budget: raise
-`core.api.rate_limit_per_minute` if their combined rate can exceed it, or the surplus gets `429` whatever the
-per-token limit allows.
+**Generic CRUD writes are refused.** `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` deny every write
+through Core's generic CRUD (`insert/{module}/{entity}` under any spelling of the path), so the `insert` permission
+of the agent role opens the dedicated route and nothing else. The `select` on the configurations also opens
+Core's generic reads of that table, so the role carries an ACL that narrows them to the versions of the caller's own source.
+
+**The API switch and the rate limits.** The routes are `/api` routes: while the Core `expose_api` setting is off (the
+default) they answer `403`, so an installation that receives machine data must turn the API on. Two limits apply:
+Core's `api` limiter (`core.api.rate_limit_per_minute`, 600 a minute) counts per token once the token authenticated, so
+agents behind one address (a factory NAT) do not share it, and the ingest route's own `mes-machine-ingest` throttle
+(`mes.machine.rate_limit_per_minute`, 600 a minute) counts per service account. The two configuration routes share one budget
+per service account (`mes.machine.config_rate_limit_per_minute`, 60 a minute). The limiters count in Redis outside the
+test runner.
 
 ### The envelope
 
@@ -111,6 +135,10 @@ per-token limit allows.
       { "signal": "bore_d", "ts": "2026-10-05T08:15:02.010Z", "value": 12.004,
         "context": { "serial": "SN123", "order_ref": "PO-2026-0042" } }
     ] }
+  ],
+  "losses": [
+    { "priority": "bulk", "from_ts": "2026-10-05T08:10:00.000Z", "to_ts": "2026-10-05T08:12:30.000Z",
+      "samples": 120, "reason": "buffer_full" }
   ]
 }
 ```
@@ -122,8 +150,12 @@ per-token limit allows.
   `number`, `boolean`, `string`, optional `unit`) or `death` (the device goes `offline`).
 - `ts` is device time (UTC); all processing uses it, never the arrival time. `value` is a number, a
   boolean or a string. `quality` is `good`, `uncertain` or `bad`; `bad` samples are stored and ignored.
-- `context` may carry `order_ref`, `operation_ref`, `serial`, `lot`. Adding optional fields keeps version
-  1; any other change is `laraplate-machine/2`.
+- `context` may carry `order_ref`, `operation_ref`, `serial`, `lot`.
+- `losses` is optional and reports data the sender dropped before it could send it (the edge agent's buffer is full,
+  or the data was invalid): a list of objects with `priority` (`critical` or `bulk`), `from_ts` and `to_ts` (date-time),
+  `samples` (an integer of at least 1) and `reason` (`buffer_full` or `rejected_invalid`), no other key. Each marker
+  becomes a `data_dropped` incident (see "Incidents and health"). Adding optional fields keeps version 1; any other
+  change is `laraplate-machine/2`.
 
 The JSON Schema is `resources/protocol/laraplate-machine-1.schema.json`. The fixtures in
 `tests/Fixtures/machine-protocol/` pair valid and invalid envelopes (and each normaliser's input with its
@@ -454,10 +486,77 @@ made with. The "Process summaries" list in the "Machine connectivity" group show
 ## Incidents and health
 
 Incidents (`mes_machine_incidents`): `seq_gap`, `clock_skew`, `message_failed`, `auth_failure`,
-`device_silent` and `bridge_down`. `mes:machine-watchdog` runs every minute: a
+`device_silent`, `bridge_down`, `data_dropped` and `config_rejected`. `mes:machine-watchdog` runs every minute: a
 device silent for longer than its source's `heartbeat_timeout_seconds` opens a `device_silent` incident,
 which closes when it is heard again (and the synthetic `Offline` interval with it). Incidents notify the roles and channels set under
 `mes.notifications.machine_incident`.
+
+- **`data_dropped`** comes from the `losses[]` of an envelope: one incident per marker, dated at the marker's
+  `to_ts`, with the detail `{message_id, priority, from_ts, to_ts, samples, reason}`. It is recorded the first time the
+  message is processed and never again: reprocessing the message, receiving it twice (the same `message_id`) or running
+  the job twice records nothing new, because a marker is matched against the incidents already recorded by every field of
+  its detail (two identical markers in one message still give two incidents). Runs of one source are serialised by the
+  job's overlap lock, which expires after five minutes; that is what keeps two simultaneous runs of one message from both
+  recording. The envelope may arrive over HTTP or through the MQTT bridge.
+- **`config_rejected`** comes from an apply report with the outcome `rejected` or `rolled_back` (see "Edge agent
+  configuration"): detail `{version, outcome, errors}`. A report `applied` opens none.
+- **`auth_failure`** also carries a `reason` for the refusals of the HTTP routes: `missing_permission` or
+  `inactive_source` (see "The HTTP endpoint").
+
+## Edge agent configuration
+
+The `laraplate-edge` agent (see the edge agent design at the stack root) downloads one versioned configuration
+document per source and reports what it did with it. The backend stores and serves the document and checks its
+structure; it never interprets drivers, outputs or plugins. Two tables hold it: `mes_machine_agent_configs` (source,
+version, document, author; unique per source and version) and `mes_machine_agent_config_reports` (source, version,
+outcome, errors, agent version, time). The source points at its active version (`active_config_id`) and keeps
+`last_config_version`, the last number it gave out.
+
+**Routes.** Both use the same service account authentication and the `mes-machine-agent` role as the ingest route, and
+share one request budget per service account (`mes.machine.config_rate_limit_per_minute`, 60 a minute).
+
+| Route | Name | Permission | Answers |
+|---|---|---|---|
+| `GET api/v1/detail/mes/machine-agent-configs` | `mes.api.machine-agent-configs.detail` | `select` on `mes_machine_agent_configs` | `200` with `{version, document}` of the active version; `304` with no body when `?version=` equals the active version; `404` when the source has no active version; `422` when `version` is not a positive integer; `401`, `403` and `429` as the ingest route |
+| `POST api/v1/insert/mes/machine-agent-config-reports` | `mes.api.machine-agent-config-reports.insert` | `insert` on `mes_machine_agent_config_reports` | `201` with `{status: "recorded", id}`; `422` for an invalid report, with no row and no incident; `401`, `403` and `429` as above |
+
+An agent polls with the version it applied: `304` means nothing changed; any other answer is the active document (a
+`?version=` lower or higher than the active one gets the active document too).
+
+**The report** is `{version, outcome, errors, agent_version}`. `version` must be a version published for the caller's own
+source (another source's version is `422`); `outcome` is `applied`, `rejected` or `rolled_back`; `errors` is null or a
+list of at most 100 strings of at most 1000 characters; `agent_version` is required (64 characters at most). A
+`rejected` report (the agent refused the document) and a `rolled_back` one (it started the document and went back to
+the previous one, so the new document did not work) both open a `config_rejected` incident; `applied` opens none. Every
+report is kept and shown on the source page, newest first.
+
+**Versions only grow.** The agent refuses a document older than the one it applied, so the backend never serves a lower
+number. Publishing stores the document as the source's next version (`last_config_version + 1`, taken under the lock of
+the source row, so a number is never reused even if a version is deleted), writes that number into the document's
+`version` field and makes it the active one. Rolling back to an earlier version is an **activation**: activating a
+version that is not the active one publishes its document again as a new version, content untouched and next number, so
+a polling agent always receives a higher version holding the old content. Activating the active version changes nothing.
+
+**Structural validation only.** A document is refused before it is stored unless it is a JSON object with only the keys
+`schema`, `version`, `inputs`, `outputs` and `plugins`; `schema` equal to `laraplate-edge-config/1`; `version`, when
+present, an integer of at least 1 (the backend overwrites it); `inputs` and `outputs` present and `plugins` optional,
+each a JSON array of objects with a non-empty string `id`. Errors name their path (`inputs.0.id: ...`). The agent's
+full schema is not published yet: the module keeps this structural copy in
+`resources/edge/laraplate-edge-config-1.schema.json`, to be replaced by the agent's own schema when it exists. The
+document is stored and served exactly as published: an empty object stays `{}`, never `[]`.
+
+**Secrets never travel in the document.** Credentials are `secret://` references that the agent resolves on its own
+machine; the backend holds no secret value.
+
+**One writer.** `MachineAgentConfigService` (`publish`, `activate`, `validate`, `recordReport`) is the only writer; the
+generic CRUD refuses writes to both tables. A hard delete of a source clears its active pointer first and removes its
+versions and reports with it, in one transaction.
+
+**On the source page** (Machine connectivity > Sources > edit) two sections appear. **Configuration versions** lists
+each version with its author and date and marks the active one; "Publish configuration" opens a JSON editor prefilled with
+the active document (the `version` you write is ignored; an invalid document shows the service's errors on the field and
+stores nothing) and "Activate" on an older version publishes it again as above. Both actions need the permission to
+update the source. **Agent reports** is read-only: version, outcome, errors and agent version, newest first.
 
 ## Operations
 

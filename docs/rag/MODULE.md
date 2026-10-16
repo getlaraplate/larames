@@ -30,7 +30,7 @@ production KPIs.
 | Quality | `QualityPlan`, `QualityPlanCharacteristic` (validity window), `QualityCheck`, `QualityCheckMeasurement`, `NonConformance` |
 | Downtime | `Downtime` |
 | Shifts | `Shift`, `ShiftInstance`, `OperatorLog` |
-| Machine connectivity | `MachineSource` (Sanctum tokenable), `MachineProfile`, `MachineDevice`, `MachineSignal`, `UnmappedSignal`, `MachineMessage`, `MachineIncident` |
+| Machine connectivity | `MachineSource` (linked to a service account), `MachineProfile`, `MachineDevice`, `MachineSignal`, `UnmappedSignal`, `MachineMessage`, `MachineIncident`, `MachineAgentConfig`, `MachineAgentConfigReport` |
 
 ## Core flow
 
@@ -259,20 +259,28 @@ recomputed live), notified to the roles in `mes.notifications.capacity_overload`
 User guide and protocol: `docs/MACHINE_CONNECTIVITY.md`. Step 1 of the machine data acquisition design:
 the foundation, with no consumer of the machine data yet.
 
-- **Ingress.** `POST api/v1/mes/machine-data` (`mes.api.machine-data.ingest`):
-  `AuthenticateMachineSource` (bearer token of the source's service account, resolved by `MachineSourceResolver`,
-  ability `mes:machine-ingest`; 401 unknown or a user that speaks for no source,
-  403 missing ability, inactive source, or not an http canonical source), a per-token throttle
-  (`mes.machine.rate_limit_per_minute`; Redis-backed, and the throttle runs before the source is known, so
-  it keys on the token), `MachineDataIngestController` (413 body or sample limits, 422
-  `MachineEnvelopeValidator`), then `MachineMessageInbox::accept()`, which stores the raw message through
-  `IdempotentWriter` (insert-or-ignore on five drivers, a unique-violation fallback on Oracle), records
-  `seq_gap` and `clock_skew` incidents and queues `ProcessMachineMessageJob`.
-- **Switch and authentication.** The route sits behind Core's `expose_api` switch (`403` while it is off, the default)
-  and is marked `SelfAuthenticatedApiRoute`: the bearer token is a source's, not a user's, so Core runs the request as
-  the anonymous user and `AuthenticateMachineSource` authenticates it (until the sources move to service accounts). Core's
-  per-address `api` rate limit (`core.api.rate_limit_per_minute`, 600 a minute, per client address) applies on top of the
-  per-token `mes-machine-ingest` throttle, so gateways behind one address share it.
+- **Ingress.** `POST api/v1/insert/mes/machine-messages` (`mes.api.machine-messages.insert`, no alias for the
+  former path): Core's `AuthenticateApiRequest` authenticates the bearer token of the source's service account
+  (`401` missing, invalid, expired or revoked; `403` outside the token's `allowed_cidrs`), then
+  `ResolveMachineSource:{model},{operation}` checks the `api` permission (`insert` on `mes_machine_messages`; `401` for
+  the anonymous user, `403` otherwise), resolves the source through `MachineSourceResolver` (`403` when the account
+  speaks for no source) and refuses an inactive one (`403`), then the `mes-machine-ingest` throttle
+  (`mes.machine.rate_limit_per_minute`, per service account), then `MachineDataIngestController` (`403` not an http
+  canonical source, `413` body or sample limits, `422` `MachineEnvelopeValidator`) and `MachineMessageInbox::accept()`,
+  which stores the raw message through `IdempotentWriter` (insert-or-ignore on five drivers, a unique-violation
+  fallback on Oracle), records `seq_gap` and `clock_skew` incidents and queues `ProcessMachineMessageJob`.
+  A refusal that names a source is one `auth_failure` incident per source every five minutes, with the detail
+  reason `missing_permission` or `inactive_source`; a caller with no source is only logged.
+- **Switch, limits and the agent role.** The routes sit behind Core's `expose_api` switch (`403` while it is off, the
+  default). Core's `api` limiter counts per token once authenticated (`core.api.rate_limit_per_minute`). Sources are
+  service accounts (`users.is_service_account`) linked by `mes_machine_sources.user_id` (nullable, unique, counting
+  soft-deleted sources; only service accounts qualify). `MESDatabaseSeeder` creates the `api` role `mes-machine-agent`
+  (`MACHINE_AGENT_ROLE`; the seeder `dependsOn()` `PermissionRefreshSeeder`) with `insert` on `mes_machine_messages`,
+  `select` on `mes_machine_agent_configs` and `insert` on `mes_machine_agent_config_reports`, granted without detaching,
+  plus an ACL on the configurations' `select` that narrows the role to its own source (`RelationFilter` on `source`,
+  `user_id = @user.id`). `MachineMessage`, `MachineAgentConfig` and `MachineAgentConfigReport` implement
+  `RestrictsCrudWrites`: Core's generic CRUD refuses their writes, so the permissions open the dedicated routes alone.
+  `bootstrap/app.php` counts named limiters in Redis (`throttleWithRedis()`) except under the test runner.
 - **Job.** `ProcessMachineMessageJob` (queue `mes.machine.queue`, `WithoutOverlapping` keyed by source,
   3 tries) owns retries, status and the `message_failed` incident; the pipeline is
   `MachineMessageProcessor`: `NormalizerRegistry` (`canonical`, `mapped_json`), `SignalResolver` (one cached
@@ -287,11 +295,35 @@ the foundation, with no consumer of the machine data yet.
   `mes:machine-watchdog` (every minute: `device_silent` incidents), `MachineIncidentRecorder` and the
   `NotifyMachineIncident` listener (`mes.notifications.machine_incident`), `MachineProfileService` (apply,
   import, export; `MachineSignal::rulesForRole()` validates a signal's config by role),
-  `UnmappedSignalMapper`, `MachineSourceResolver` (the source of a service account: `mes_machine_sources.user_id`,
-  nullable and unique, only users with `is_service_account`; soft-deleted sources never resolve).
+  `UnmappedSignalMapper`, `MachineSourceResolver` (the source of a service account, only users with `is_service_account`; soft-deleted sources
+  never resolve).
 - **Domain actions** (`MESPermissions`): `MachineMessage` `reprocess`; `MachineSource` `reprocess_range`;
-  `MachineDevice` `apply_profile`; `MachineProfile` `export`. Tokens are managed on the service account (Core user
-  resource), not on the source.
+  `MachineDevice` `apply_profile`; `MachineProfile` `export`. Tokens are issued on the service account's user page
+  (Core user resource, API tokens, with `allowed_cidrs`), never on the source.
+- **Edge agent backend** (plan `2026-10-15-mes-edge-agent-backend`). *Losses:* the optional `losses[]` of the envelope
+  (`priority` `critical`/`bulk`, `from_ts`, `to_ts`, `samples` >= 1, `reason` `buffer_full`/`rejected_invalid`; schema and
+  `MachineEnvelopeValidator`, lists enforced) reaches `MachineMessageProcessor::recordLosses()`, which records one
+  `data_dropped` incident per marker (detail `{message_id, priority, from_ts, to_ts, samples, reason}`, `occurred_at` =
+  `to_ts`) unless an incident with the same detail exists, so a reprocess, a duplicate or a second run adds none; the
+  `(source_id, type, occurred_at)` index serves that lookup. *Configuration:* `mes_machine_agent_configs` (unique
+  `(source_id, version)`, `document` json cast to an object tree) and `mes_machine_agent_config_reports`;
+  `mes_machine_sources.active_config_id` (FK added by the configurations migration) and `last_config_version`.
+  `MachineAgentConfigService`: `publish(MachineSource, stdClass|string $document, ?User)` validates structure
+  (`laraplate-edge-config/1`, D3: top-level keys, integer `version`, `inputs`/`outputs`/`plugins` as arrays of objects
+  with a string `id`; copy in `resources/edge/laraplate-edge-config-1.schema.json`), numbers the version from the locked
+  source row, writes it into the document and activates it; `activate()` of a non-active version publishes it again as a
+  new version (versions only grow, D2); `recordReport()` stores the report and opens `config_rejected`
+  (`{version, outcome, errors}`) for `rejected` and `rolled_back` (D4). Routes: `GET api/v1/detail/mes/machine-agent-configs`
+  (`mes.api.machine-agent-configs.detail`, `MachineAgentConfigController`: `200 {version, document}`, `304` when
+  `?version=` equals the active version, `404` none active, `422` bad version) and
+  `POST api/v1/insert/mes/machine-agent-config-reports` (`mes.api.machine-agent-config-reports.insert`,
+  `MachineAgentConfigReportController`: `201`, `422` with nothing stored for a version not published for the caller's
+  source), both behind `ResolveMachineSource` and the `mes-machine-agent-config` limiter
+  (`mes.machine.config_rate_limit_per_minute` / `MES_MACHINE_CONFIG_RATE_LIMIT_PER_MINUTE`, per service account, shared by
+  the two routes). `MachineSource::delete()` runs in one transaction and a hard delete clears `active_config_id` first.
+  *Backoffice:* the source page has the relation managers `AgentConfigsRelationManager` (publish with a JSON editor,
+  activate, view document; gated on the `update` policy of the source) and `AgentConfigReportsRelationManager`
+  (read-only). Documents hold only `secret://` references.
 - **MQTT (step 2).** `php artisan mes:machine-bridge` (`MachineBridgeCommand` over `MachineBridge`): connects
   through `MachineMessageSubscriber` (`PhpMqttSubscriber`, php-mqtt/client, MQTT 3.1.1, QoS 1, persistent
   session under `mes.machine.mqtt.client_id`), subscribes to `MqttMessageRouter::subscriptions()` (the
