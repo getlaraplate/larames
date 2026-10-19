@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\Core\Contracts\RestrictsCrudWrites;
 use Modules\Core\Enums\CoreTables;
+use Modules\Core\Models\Concerns\DeniesGenericCrudWrites;
 use Modules\Core\Models\User;
 use Modules\Core\Overrides\Model;
 use Modules\ERP\Concerns\BelongsToCompany;
@@ -38,9 +40,9 @@ use Override;
  * @property ?int $active_config_id
  * @property int $last_config_version
  */
-final class MachineSource extends Model
+final class MachineSource extends Model implements RestrictsCrudWrites
 {
-    use BelongsToCompany;
+    use BelongsToCompany, DeniesGenericCrudWrites;
 
     /**
      * @var string

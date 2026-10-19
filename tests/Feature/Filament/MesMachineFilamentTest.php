@@ -246,3 +246,20 @@ it('offers only the checks of the same company whose plan holds the characterist
     $list()->callTableAction('assign', $row, ['quality_check_id' => $good->id])->assertHasNoTableActionErrors();
     expect($row->fresh()->assigned_at)->not->toBeNull();
 });
+
+it('offers only the service accounts no other source uses, keeping the one of the source being edited', function (): void {
+    $taken = Modules\Core\Models\User::factory()->serviceAccount()->create();
+    $free = Modules\Core\Models\User::factory()->serviceAccount()->create();
+    $own = Modules\Core\Models\User::factory()->serviceAccount()->create();
+    Modules\MES\Models\MachineSource::factory()->create(['user_id' => $taken->id]);
+    $source = Modules\MES\Models\MachineSource::factory()->create(['user_id' => $own->id]);
+
+    $options = Livewire::test(Modules\MES\Filament\Resources\MachineSources\Pages\EditMachineSource::class, ['record' => $source->getKey()])
+        ->assertOk()
+        ->instance()
+        ->getSchema('form')
+        ->getFlatComponents()['user_id'] ?? null;
+
+    $ids = array_keys($options?->getOptions() ?? []);
+    expect($ids)->toContain($free->id, $own->id)->not->toContain($taken->id);
+});

@@ -82,7 +82,10 @@ the account. Use TLS. The route has no alias: the path the first steps used is g
   `api` permissions, one per route of this chapter: `insert` on `mes_machine_messages`, `select` on
   `mes_machine_agent_configs` and `insert` on `mes_machine_agent_config_reports`. Re-seeding grants them again and
   never takes away what an administrator added, so a role an administrator widened holds more.
-- Link it to a source: the source form offers only service accounts. **One source per service account**
+- Link it to a source: the source form offers only the service accounts no other source uses. **Sources are
+  administered in the backoffice only**: the generic CRUD API refuses to insert, change or delete a machine source
+  (`RestrictsCrudWrites`), even to a role that holds the permissions, so an API user cannot link a service account
+  (and the machines behind it) to a source. **One source per service account**
   (`mes_machine_sources.user_id` is unique, and the unique link counts soft-deleted sources, so a deleted source
   keeps its account until the source is removed for good). A token of a user that is not a source's service
   account never resolves a source, even when it holds the three permissions: `403`.

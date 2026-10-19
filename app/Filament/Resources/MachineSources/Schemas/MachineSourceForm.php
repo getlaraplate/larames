@@ -10,10 +10,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use Modules\Core\Enums\CoreTables;
 use Modules\Core\Filament\Utils\HasForm;
 use Modules\Core\Models\User;
+use Modules\MES\Models\MachineSource;
 use Modules\MES\Enums\MachineTransport;
 use Modules\MES\Machine\Normalizers\NormalizerRegistry;
 
@@ -78,9 +80,12 @@ final class MachineSourceForm
      * @param  Builder<User>  $query
      * @return Builder<User>
      */
-    private static function onlyServiceAccounts(Builder $query): Builder
+    private static function onlyServiceAccounts(Builder $query, ?Model $record = null): Builder
     {
-        $query->getQuery()->where($query->getModel()->qualifyColumn('is_service_account'), true);
+        $query->getQuery()
+            ->where($query->getModel()->qualifyColumn('is_service_account'), true)
+            // An account speaks for one source only: offer the ones no other source uses.
+            ->whereNotIn($query->getModel()->qualifyColumn('id'), MachineSource::query()->withoutGlobalScopes()->whereNotNull('user_id')->when($record?->getKey(), static fn ($sources, mixed $key) => $sources->whereKeyNot($key))->select('user_id')->toBase());
 
         return $query;
     }
