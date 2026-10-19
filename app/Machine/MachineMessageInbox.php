@@ -72,7 +72,7 @@ final class MachineMessageInbox
 
         MachineSource::query()->withoutGlobalScopes()->toBase()->where('id', $source->id)->update(['last_seen_at' => $received_at]);
         $this->checkSequence($source, $meta);
-        $this->checkClock($source, $meta);
+        $this->checkClock($source, $meta, $transport);
 
         ProcessMachineMessageJob::dispatch($message->id, $source->id);
 
@@ -110,15 +110,22 @@ final class MachineMessageInbox
     /**
      * A sender clock ahead of the server is reported at the first message. A clock behind is reported only when
      * two consecutive new messages are late: one late message alone is what an agent's identical resend after an
-     * outage looks like, since its `sent_at` is the time the batch was sealed.
+     * outage looks like, since its `sent_at` is the time the batch was sealed. Over MQTT a clock behind is not
+     * checked at all: after an outage of the bridge the broker's persistent session delivers a backlog in a row,
+     * every message old by design, so lateness says nothing about the sender's clock there.
      */
-    private function checkClock(MachineSource $source, MessageMeta $meta): void
+    private function checkClock(MachineSource $source, MessageMeta $meta, MachineTransport $transport): void
     {
         if (! $meta->sent_at instanceof CarbonImmutable) {
             return;
         }
 
         $offset = now()->diffInSeconds($meta->sent_at, false);
+
+        if ($offset < 0 && $transport === MachineTransport::Mqtt) {
+            return;
+        }
+
         $skew = (int) round(abs($offset));
         $behind_key = 'mes:machine:clock-behind:' . $source->id;
 

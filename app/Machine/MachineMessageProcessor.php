@@ -126,8 +126,9 @@ final class MachineMessageProcessor
 
     /**
      * Opens one `data_dropped` incident per marker that has none yet, dated at the end of the lost range.
-     * A marker matches an incident when every field of the detail does; a message that holds two
-     * identical markers still gets two incidents, one each, on any number of runs.
+     * A marker matches an incident when its priority, range, count and reason do, whichever message reported it
+     * (the message is kept in the detail of the first); a message that holds two identical markers still gets
+     * two incidents, one each, on any number of runs.
      *
      * @param  list<NormalizedLoss>  $losses
      */
@@ -185,13 +186,15 @@ final class MachineMessageProcessor
     }
 
     /**
-     * The identity of a marker, built by position so the key order of the stored JSON does not matter.
+     * The identity of a marker, built by position so the key order of the stored JSON does not matter. It leaves out
+     * the message: an agent that crashes between sealing a batch and acknowledging its markers sends them again in a
+     * later message, and that is the same loss, not a second one.
      *
      * @param  array<string, mixed>  $detail
      */
     private function lossKey(array $detail): string
     {
-        return json_encode(array_map(static fn (string $field): mixed => $detail[$field] ?? null, ['message_id', 'priority', 'from_ts', 'to_ts', 'samples', 'reason']), JSON_THROW_ON_ERROR);
+        return json_encode(array_map(static fn (string $field): mixed => $detail[$field] ?? null, ['priority', 'from_ts', 'to_ts', 'samples', 'reason']), JSON_THROW_ON_ERROR);
     }
 
     /**

@@ -161,6 +161,20 @@ it('records a clock skew incident when two consecutive messages are late', funct
         ->and($incident->detail['skew_seconds'])->toBe(600);
 });
 
+it('records no clock skew for late messages over MQTT, where a persistent session delivers a backlog in a row', function (): void {
+    $source = MachineSource::factory()->create();
+    $inbox = resolve(MachineMessageInbox::class);
+
+    foreach ([1, 2, 3] as $seq) {
+        $inbox->accept($source, inboxPayload("backlog-{$seq}", $seq, now()->subMinutes(10)->toIso8601ZuluString('millisecond')), MachineTransport::Mqtt);
+    }
+
+    expect(MachineIncident::query()->where('type', MachineIncidentType::ClockSkew->value)->count())->toBe(0);
+
+    $inbox->accept($source, inboxPayload('ahead', 4, now()->addMinutes(5)->toIso8601ZuluString('millisecond')), MachineTransport::Mqtt);
+    expect(MachineIncident::query()->where('type', MachineIncidentType::ClockSkew->value)->count())->toBe(1);
+});
+
 it('ignores a duplicate for the clock check', function (): void {
     $source = MachineSource::factory()->create();
     $inbox = resolve(MachineMessageInbox::class);

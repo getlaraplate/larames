@@ -148,13 +148,25 @@ it('records no new incident when a retry runs the whole message again', function
     expect(droppedIncidents())->toHaveCount(2);
 });
 
-it('keeps the incidents of the same range apart when two different messages report it', function (): void {
+it('records a marker once when a later message repeats it, as an agent resending after a crash does', function (): void {
     $source = MachineSource::factory()->create();
 
     runLossJob(storedLossMessage($source, lossEnvelope('m-a', twoLosses()), 'm-a'));
     runLossJob(storedLossMessage($source, lossEnvelope('m-b', twoLosses()), 'm-b'));
 
-    expect(droppedIncidents())->toHaveCount(4);
+    expect(droppedIncidents())->toHaveCount(2)
+        ->and(droppedIncidents()->pluck('detail.message_id')->unique()->all())->toBe(['m-a']);
+});
+
+it('keeps apart the markers of different messages that differ in any field', function (): void {
+    $source = MachineSource::factory()->create();
+    $changed = twoLosses();
+    $changed[0]['samples'] = 121;
+
+    runLossJob(storedLossMessage($source, lossEnvelope('m-a', twoLosses()), 'm-a'));
+    runLossJob(storedLossMessage($source, lossEnvelope('m-b', $changed), 'm-b'));
+
+    expect(droppedIncidents())->toHaveCount(3);
 });
 
 it('takes an incident for a marker only when every field of its detail matches', function (): void {

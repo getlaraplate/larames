@@ -154,7 +154,10 @@ test runner.
   records a `clock_skew` incident, and processing carries on. A clock ahead is reported at the first such
   message. A clock behind is reported only when two consecutive new messages of the source are late: a single
   late message is what an agent's identical resend after a network outage looks like (its `sent_at` is the
-  time the batch was sealed), so it opens nothing. A message within the threshold resolves the incident.
+  time the batch was sealed), so it opens nothing. Over MQTT a clock behind is never reported: after an outage of
+  the bridge the broker's persistent session delivers a backlog of old messages in a row, and lateness there says
+  nothing about the sender's clock (a clock ahead is still reported). A message within the threshold resolves the
+  incident.
 - `type` is `data` (samples), `birth` (the device announces its `signals`: `signal`, `data_type` in
   `number`, `boolean`, `string`, optional `unit`) or `death` (the device goes `offline`).
 - `ts` is device time (UTC); all processing uses it, never the arrival time. `value` is a number, a
@@ -502,10 +505,15 @@ which closes when it is heard again (and the synthetic `Offline` interval with i
 `mes.notifications.machine_incident`.
 
 - **`data_dropped`** comes from the `losses[]` of an envelope: one incident per marker, dated at the marker's
-  `to_ts`, with the detail `{message_id, priority, from_ts, to_ts, samples, reason}`. It is recorded the first time the
+  `to_ts`, with the detail `{message_id, priority, from_ts, to_ts, samples, reason}` (the `message_id` is the one of the
+  message that reported it first). It is recorded the first time the
   message is processed and never again: reprocessing the message, receiving it twice (the same `message_id`) or running
-  the job twice records nothing new, because a marker is matched against the incidents already recorded by every field of
-  its detail (two identical markers in one message still give two incidents). Runs of one source are serialised by the
+  the job twice records nothing new, because a marker is matched against the incidents already recorded by its priority, range, count and
+  reason, whichever message reported them: an agent that crashes between sealing a batch and acknowledging its markers
+  sends them again in a later message, and that is the same loss (two identical markers in one message still give two
+  incidents). There is no cap on the markers of a message: the body size (`mes.machine.max_body_kb`) and the request
+  limit bound them, a refusal would make the agent drop or split the batch, and the notification of incidents is
+  throttled to one per source and type every five minutes. Runs of one source are serialised by the
   job's overlap lock, which expires after five minutes; that is what keeps two simultaneous runs of one message from both
   recording. The envelope may arrive over HTTP or through the MQTT bridge.
 - **`config_rejected`** comes from an apply report with the outcome `rejected` or `rolled_back` (see "Edge agent
@@ -572,6 +580,12 @@ stores nothing) and "Activate" on an older version publishes it again as above. 
 update the source. **Agent reports** is read-only: version, outcome, errors and agent version, newest first.
 
 ## Operations
+
+- Upgrading a development database: the machine tables of the first steps were changed in their create migrations
+  (no alter migrations before the first release). A database migrated between 6 and 15 October 2026 fails on
+  `2026_10_16_000001` (the `active_config_id` column does not exist): run `php artisan migrate:fresh`. Tokens that
+  belonged to machine sources before they became service accounts stay in `personal_access_tokens`, harmless (the
+  API answers `401`) and safe to delete.
 
 - Queue: `mes.machine.queue` (default `mes-machine`) on the `mes.queue.connection` connection. Give it its
   own Horizon supervisor so machine traffic never delays other work, for example in `config/horizon.php`:
