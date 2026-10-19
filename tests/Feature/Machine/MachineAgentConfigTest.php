@@ -674,3 +674,33 @@ it('refuses the generic CRUD writes on configurations and reports, even to a rol
     'update a report' => ['PATCH', '/api/v1/update/mes/machine-agent-config-reports', fn (MachineSource $source, MachineAgentConfig $config, MachineAgentConfigReport $report): array => ['id' => $report->id, 'outcome' => 'rejected']],
     'delete a report' => ['DELETE', '/api/v1/delete/mes/machine-agent-config-reports', fn (MachineSource $source, MachineAgentConfig $config, MachineAgentConfigReport $report): array => ['id' => $report->id]],
 ]);
+
+it('opens the config_rejected incident once per open source, version and outcome, however often the agent reports it', function (): void {
+    [$source] = agentConfigSource();
+    $service = agentConfigService();
+    $service->publish($source, agentConfigDocument());
+    $service->publish($source, agentConfigDocument());
+    $failed = static fn (int $version, MachineAgentConfigOutcome $outcome) => $service->recordReport($source, $version, $outcome, ['inputs.0: no'], '0.3.1');
+
+    $failed(1, MachineAgentConfigOutcome::Rejected);
+    $failed(1, MachineAgentConfigOutcome::Rejected);
+    expect(MachineIncident::query()->count())->toBe(1)
+        ->and(MachineAgentConfigReport::query()->count())->toBe(2);
+
+    $failed(1, MachineAgentConfigOutcome::RolledBack);
+    $failed(2, MachineAgentConfigOutcome::Rejected);
+    expect(MachineIncident::query()->count())->toBe(3);
+
+    MachineIncident::query()->update(['resolved_at' => now()]);
+    $failed(1, MachineAgentConfigOutcome::Rejected);
+    expect(MachineIncident::query()->count())->toBe(4);
+});
+
+it('serves the active document to an agent that asks for a higher version than the active one', function (): void {
+    [$source, $token] = agentConfigSource();
+    agentConfigService()->publish($source, agentConfigDocument());
+
+    test()->getJson('/api/v1/detail/mes/machine-agent-configs?version=9', ['Authorization' => "Bearer {$token}"])
+        ->assertOk()
+        ->assertJsonPath('version', 1);
+});

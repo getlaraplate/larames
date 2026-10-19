@@ -76,7 +76,7 @@ final class MachineEnvelopeValidator
             'losses.*' => ['array:priority,from_ts,to_ts,samples,reason'],
             'losses.*.priority' => ['required', Rule::in(['critical', 'bulk'])],
             'losses.*.from_ts' => ['required', 'string', $this->isoDateTime()],
-            'losses.*.to_ts' => ['required', 'string', $this->isoDateTime()],
+            'losses.*.to_ts' => ['required', 'string', $this->isoDateTime(), 'after_or_equal:losses.*.from_ts'],
             'losses.*.samples' => ['required', 'integer:strict', 'min:1'],
             'losses.*.reason' => ['required', Rule::in(['buffer_full', 'rejected_invalid'])],
         ];

@@ -162,7 +162,8 @@ test runner.
 - `context` may carry `order_ref`, `operation_ref`, `serial`, `lot`.
 - `losses` is optional and reports data the sender dropped before it could send it (the edge agent's buffer is full,
   or the data was invalid): a list of objects with `priority` (`critical` or `bulk`), `from_ts` and `to_ts` (date-time),
-  `samples` (an integer of at least 1) and `reason` (`buffer_full` or `rejected_invalid`), no other key. Each marker
+  `samples` (an integer of at least 1) and `reason` (`buffer_full` or `rejected_invalid`), no other key; `to_ts` is not
+  before `from_ts` (the backend checks it; the JSON Schema cannot). Each marker
   becomes a `data_dropped` incident (see "Incidents and health"). Adding optional fields keeps version 1; any other
   change is `laraplate-machine/2`.
 
@@ -536,8 +537,9 @@ An agent polls with the version it applied: `304` means nothing changed; any oth
 source (another source's version is `422`); `outcome` is `applied`, `rejected` or `rolled_back`; `errors` is null or a
 list of at most 100 strings of at most 1000 characters; `agent_version` is required (64 characters at most). A
 `rejected` report (the agent refused the document) and a `rolled_back` one (it started the document and went back to
-the previous one, so the new document did not work) both open a `config_rejected` incident; `applied` opens none. Every
-report is kept and shown on the source page, newest first.
+the previous one, so the new document did not work) both open a `config_rejected` incident, once per open source, version and outcome (an agent that sends the same report
+again, for instance because it did not see the answer, opens no second incident, and no second notification);
+`applied` opens none. Every report is kept and shown on the source page, newest first.
 
 **Versions only grow.** The agent refuses a document older than the one it applied, so the backend never serves a lower
 number. Publishing stores the document as the source's next version (`last_config_version + 1`, taken under the lock of

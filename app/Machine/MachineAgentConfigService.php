@@ -11,6 +11,7 @@ use Modules\MES\Enums\MachineAgentConfigOutcome;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Models\MachineAgentConfig;
 use Modules\MES\Models\MachineAgentConfigReport;
+use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineSource;
 use stdClass;
 
@@ -21,7 +22,7 @@ use stdClass;
  * published document with the next number of its source, writes that number into the document's `version` field, and
  * "activating an earlier version" publishes its document again as the next version. The document is checked for
  * structure only ({@see self::validate()}, mirroring `resources/edge/laraplate-edge-config-1.schema.json`); driver
- * fields are never interpreted. A failed apply the agent reports opens a `config_rejected` incident.
+ * fields are never interpreted. A failed apply the agent reports opens a `config_rejected` incident, once per open source, version and outcome.
  */
 final readonly class MachineAgentConfigService
 {
@@ -140,7 +141,7 @@ final readonly class MachineAgentConfigService
                 'reported_at' => now(),
             ]);
 
-            if ($outcome->isFailure()) {
+            if ($outcome->isFailure() && ! $this->hasOpenRejection($source, $version, $outcome)) {
                 $this->incidents->record($source, MachineIncidentType::ConfigRejected, [
                     'version' => $version,
                     'outcome' => $outcome->value,
@@ -150,6 +151,22 @@ final readonly class MachineAgentConfigService
 
             return $report;
         });
+    }
+
+    /**
+     * Whether an incident for this source, version and outcome is still open: an agent that retries a report whose
+     * answer it did not see, or reports the same failure again, must not open (and notify) it twice. The reports
+     * are all kept.
+     */
+    private function hasOpenRejection(MachineSource $source, int $version, MachineAgentConfigOutcome $outcome): bool
+    {
+        return MachineIncident::query()
+            ->withoutGlobalScopes()
+            ->unresolved()
+            ->where('source_id', $source->id)
+            ->where('type', MachineIncidentType::ConfigRejected->value)
+            ->get()
+            ->contains(static fn (MachineIncident $incident): bool => ($incident->detail['version'] ?? null) === $version && ($incident->detail['outcome'] ?? null) === $outcome->value);
     }
 
     /**

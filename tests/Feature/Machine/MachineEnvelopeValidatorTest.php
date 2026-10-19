@@ -79,3 +79,15 @@ it('publishes the loss markers in the schema as an optional list with a closed s
         ->and($loss['properties']['samples']['minimum'])->toBe(1)
         ->and($loss['properties']['reason']['enum'])->toBe(['buffer_full', 'rejected_invalid']);
 });
+
+it('refuses a loss marker whose range ends before it starts, and accepts an empty range', function (): void {
+    $envelope = loadEnvelope(dirname(__DIR__, 2) . '/Fixtures/machine-protocol/valid/with-losses.json');
+    $validator = resolve(MachineEnvelopeValidator::class);
+    $envelope['losses'][0]['from_ts'] = '2026-10-05T08:12:30.500Z';
+    $envelope['losses'][0]['to_ts'] = '2026-10-05T08:10:00.000Z';
+
+    expect($validator->validate($envelope))->toHaveKey('losses.0.to_ts');
+
+    $envelope['losses'][0]['to_ts'] = '2026-10-05T08:12:30.500Z';
+    expect($validator->validate($envelope))->toBe([]);
+});
