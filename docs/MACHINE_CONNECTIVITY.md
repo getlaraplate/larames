@@ -581,12 +581,6 @@ update the source. **Agent reports** is read-only: version, outcome, errors and 
 
 ## Operations
 
-- Upgrading a development database: the machine tables of the first steps were changed in their create migrations
-  (no alter migrations before the first release). A database migrated between 6 and 15 October 2026 fails on
-  `2026_10_16_000001` (the `active_config_id` column does not exist): run `php artisan migrate:fresh`. Tokens that
-  belonged to machine sources before they became service accounts stay in `personal_access_tokens`, harmless (the
-  API answers `401`) and safe to delete.
-
 - Queue: `mes.machine.queue` (default `mes-machine`) on the `mes.queue.connection` connection. Give it its
   own Horizon supervisor so machine traffic never delays other work, for example in `config/horizon.php`:
 
