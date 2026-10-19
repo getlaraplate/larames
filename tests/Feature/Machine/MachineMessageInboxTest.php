@@ -135,6 +135,43 @@ it('keeps one clock skew incident open while the skew lasts', function (): void 
         ->and(MachineIncident::query()->count())->toBe(1);
 });
 
+it('records no clock skew for one late message, as the resend after an outage', function (): void {
+    $source = MachineSource::factory()->create();
+    $inbox = resolve(MachineMessageInbox::class);
+
+    $inbox->accept($source, inboxPayload('resent', 1, now()->subMinutes(10)->toIso8601ZuluString('millisecond')), MachineTransport::Http);
+    $inbox->accept($source, inboxPayload('fresh', 2, now()->toIso8601ZuluString('millisecond')), MachineTransport::Http);
+    $inbox->accept($source, inboxPayload('late-again', 3, now()->subMinutes(10)->toIso8601ZuluString('millisecond')), MachineTransport::Http);
+
+    expect(MachineIncident::query()->where('type', MachineIncidentType::ClockSkew->value)->count())->toBe(0)
+        ->and(MachineMessage::query()->count())->toBe(3);
+});
+
+it('records a clock skew incident when two consecutive messages are late', function (): void {
+    $source = MachineSource::factory()->create();
+    $inbox = resolve(MachineMessageInbox::class);
+
+    $inbox->accept($source, inboxPayload('a', 1, now()->subMinutes(10)->toIso8601ZuluString('millisecond')), MachineTransport::Http);
+    expect(MachineIncident::query()->count())->toBe(0);
+
+    $inbox->accept($source, inboxPayload('b', 2, now()->subMinutes(10)->toIso8601ZuluString('millisecond')), MachineTransport::Http);
+    $incident = MachineIncident::query()->sole();
+    expect($incident->type)->toBe(MachineIncidentType::ClockSkew)
+        ->and($incident->resolved_at)->toBeNull()
+        ->and($incident->detail['skew_seconds'])->toBe(600);
+});
+
+it('ignores a duplicate for the clock check', function (): void {
+    $source = MachineSource::factory()->create();
+    $inbox = resolve(MachineMessageInbox::class);
+    $late = now()->subMinutes(10)->toIso8601ZuluString('millisecond');
+
+    $inbox->accept($source, inboxPayload('same', 1, $late), MachineTransport::Http);
+    $inbox->accept($source, inboxPayload('same', 1, $late), MachineTransport::Http);
+
+    expect(MachineIncident::query()->count())->toBe(0);
+});
+
 it('keeps a message id longer than the column working: stored once under a shortened id', function (): void {
     $source = MachineSource::factory()->create(['normalizer' => 'stub']);
     resolve(NormalizerRegistry::class)->register(new StubNormalizer('stub', static fn (string $payload): MessageMeta => new MessageMeta(str_repeat('x', 200))));
@@ -143,7 +180,7 @@ it('keeps a message id longer than the column working: stored once under a short
     $first = $inbox->accept($source, '{"a":1}', MachineTransport::Http);
     $second = $inbox->accept($source, '{"a":1}', MachineTransport::Http);
 
-    expect(strlen($first->message->message_id))->toBeLessThanOrEqual(128)
+    expect(mb_strlen($first->message->message_id))->toBeLessThanOrEqual(128)
         ->and($second->duplicate)->toBeTrue()
         ->and(MachineMessage::query()->count())->toBe(1);
 });

@@ -148,7 +148,10 @@ test runner.
 
 - `message_id` is the idempotency key, unique per source. `source_seq` increases per source; a gap records
   a `seq_gap` incident. `sent_at` is the sender clock; a difference above `mes.machine.clock_skew_seconds`
-  records a `clock_skew` incident, and processing carries on.
+  records a `clock_skew` incident, and processing carries on. A clock ahead is reported at the first such
+  message. A clock behind is reported only when two consecutive new messages of the source are late: a single
+  late message is what an agent's identical resend after a network outage looks like (its `sent_at` is the
+  time the batch was sealed), so it opens nothing. A message within the threshold resolves the incident.
 - `type` is `data` (samples), `birth` (the device announces its `signals`: `signal`, `data_type` in
   `number`, `boolean`, `string`, optional `unit`) or `death` (the device goes `offline`).
 - `ts` is device time (UTC); all processing uses it, never the arrival time. `value` is a number, a

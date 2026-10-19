@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\Cache;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineMessageStatus;
 use Modules\MES\Enums\MachineTransport;
@@ -25,6 +26,11 @@ use Modules\MES\Models\MachineSource;
 final class MachineMessageInbox
 {
     private const int MESSAGE_ID_LENGTH = 128;
+
+    /**
+     * How long a first late message is remembered while waiting for the next one.
+     */
+    private const int CLOCK_BEHIND_MEMORY_SECONDS = 86_400;
 
     public function __construct(
         private readonly NormalizerRegistry $registry,
@@ -101,15 +107,26 @@ final class MachineMessageInbox
             ->update(['last_seq' => $meta->source_seq]);
     }
 
+    /**
+     * A sender clock ahead of the server is reported at the first message. A clock behind is reported only when
+     * two consecutive new messages are late: one late message alone is what an agent's identical resend after an
+     * outage looks like, since its `sent_at` is the time the batch was sealed.
+     */
     private function checkClock(MachineSource $source, MessageMeta $meta): void
     {
         if (! $meta->sent_at instanceof CarbonImmutable) {
             return;
         }
 
-        $skew = (int) round(abs(now()->diffInSeconds($meta->sent_at, false)));
+        $offset = now()->diffInSeconds($meta->sent_at, false);
+        $skew = (int) round(abs($offset));
+        $behind_key = 'mes:machine:clock-behind:' . $source->id;
 
         if ($skew > config()->integer('mes.machine.clock_skew_seconds')) {
+            if ($offset < 0 && Cache::add($behind_key, true, self::CLOCK_BEHIND_MEMORY_SECONDS)) {
+                return;
+            }
+
             // One open incident while the skew lasts, not one per message.
             $this->incidents->recordOnce($source, MachineIncidentType::ClockSkew, [
                 'sent_at' => $meta->sent_at->toIso8601ZuluString('millisecond'),
@@ -120,6 +137,7 @@ final class MachineMessageInbox
             return;
         }
 
+        Cache::forget($behind_key);
         $this->incidents->resolve($source, MachineIncidentType::ClockSkew);
     }
 }
