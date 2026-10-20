@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Modules\Core\Enums\VersionStrategy;
 use Modules\Core\Models\Setting;
 use Modules\Core\Models\Version;
 use Modules\Core\Services\PerModelSettingResolver;
@@ -12,7 +13,6 @@ use Modules\MES\Models\BomLine;
 use Modules\MES\Models\ProductionOrder;
 use Modules\MES\Models\Routing;
 use Modules\MES\Models\RoutingOperation;
-use Overtrue\LaravelVersionable\VersionStrategy;
 
 uses(RefreshDatabase::class);
 
