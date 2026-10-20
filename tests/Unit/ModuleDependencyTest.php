@@ -45,5 +45,5 @@ test('composer.json declares ERP package as a required dependency', function ():
 
     // expect($config['require'])
     //     ->toBeArray()
-    //     ->toHaveKey('getlaraplate/laraplate-erp');
+    //     ->toHaveKey('getlaraplate/laraerp');
 });

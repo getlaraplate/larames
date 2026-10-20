@@ -1,5 +1,5 @@
 {
-  "name": "getlaraplate/laraplate-mes",
+  "name": "getlaraplate/larames",
   "vendor": "getlaraplate",
   "description": "Laraplate MES module: work orders, routings, shop-floor events, traceability, quality and KPIs.",
   "version": "v1.1.1",
