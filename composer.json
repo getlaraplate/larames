@@ -2,7 +2,7 @@
   "name": "getlaraplate/larames",
   "vendor": "getlaraplate",
   "description": "Laraplate MES module: work orders, routings, shop-floor events, traceability, quality and KPIs.",
-  "version": "v1.1.1",
+  "version": "v1.2.0",
   "keywords": [
     "laravel",
     "laraplate",

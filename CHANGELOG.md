@@ -2,6 +2,151 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-10-21
+
+### 🚀 Features
+
+- *(mes)* Drop the BOM lock, version and validate lines and operations
+- *(mes)* Unique work center codes, completion guard, downtime-aware capacity, backoffice repeaters and read-only order relations
+- *(mes)* Domain interface labels in lang/{locale}/mes.php
+- *(mes)* Typed lifecycle events, open_downtime action, materialised KPIs and capacity warning
+- *(mes)* Release, complete and cancel actions on the production order edit page
+- *(mes)* Calendar-based capacity, operation planning and completion estimate
+- *(mes)* Receive finished goods into stock on order completion, valued at material cost
+- *(mes)* Machine connectivity enums, table registry and configuration keys
+- *(mes)* Machine source, profile, device and signal models
+- *(mes)* Machine message, unmapped signal and incident models
+- *(mes)* Laraplate-machine/1 schema, fixtures and envelope validator
+- *(mes)* Machine message normaliser contract, registry, canonical and mapped_json
+- *(mes)* Machine message inbox with idempotent insert, gap and clock skew incidents
+- *(mes)* Machine data HTTP ingress with per-source tokens and limits
+- *(mes)* Machine signal resolver and unmapped signal recorder
+- *(mes)* Machine sample operation attribution
+- *(mes)* Machine message processing job and typed machine events
+- *(mes)* Machine message reprocessing, token actions and permissions
+- *(mes)* Machine watchdog, incident notification and inbox pruning schedule
+- *(mes)* Machine profile apply, import and export
+- *(mes)* Machine connectivity backoffice for sources, devices and profiles
+- *(mes)* Backoffice for unmapped signals, message inbox and incidents
+- *(mes)* Reserve and consume BOM components through ERP reservations
+- *(mes)* MQTT subscriber contract and configuration
+- *(mes)* MQTT topic router and ingest path
+- *(mes)* Machine bridge loop and mes:machine-bridge command
+- *(mes)* Sparkplug B payload decoder
+- *(mes)* Sparkplug_b normaliser with a persisted alias map
+- *(mes)* Watchdog records bridge_down from the bridge heartbeat
+- *(mes)* Php-mqtt adapter for the machine bridge
+- *(mes)* Machine state interval table and the downtime columns of step 3
+- *(mes)* Connected work centers refuse manual downtimes and lock machine downtime times
+- *(mes)* Machine downtime opening, closing and cause resolution
+- *(mes)* Machine state intervals and automatic downtimes
+- *(mes)* Open stops sweep and synthetic offline state
+- *(mes)* ISO 22400 availability for connected work centers and the incomplete-data flag
+- *(mes)* Machine states in Filament and documentation of step 3
+- *(mes)* Machine counts table and the quantity columns of operations
+- *(mes)* Machine count deltas with rollover and reset
+- *(mes)* Operation machine quantities and the target reached event
+- *(mes)* Declared quantities with an audit trail and count assignment by time range
+- *(mes)* ISO 22400 performance and quality from machine counts
+- *(mes)* Piece counts in Filament and documentation of step 4
+- *(mes)* Probe measurement columns and the unattributed measurements table
+- *(mes)* Split quality check recording from resolution
+- *(mes)* Probe measurements fill quality checks and announce out of tolerance values
+- *(mes)* Attach waiting probe measurements to the check of their operation
+- *(mes)* Probe measurements in Filament and documentation of step 5
+- Mark machine ingest as a self-authenticated api route
+- *(mes)* Add MES navigation group to the panel
+- *(mes)* Process value tables and configuration
+- *(mes)* Process value store with a relational driver and rollup
+- *(mes)* Record process values, roll them up and prune them
+- *(mes)* Permanent process summaries per operation and lot traceability
+- *(mes)* Process summaries in Filament and documentation of step 6
+- *(mes)* Mark the parts of a parent for related-record authorization
+- *(mes)* The machine source tokens relation declares its return type
+- *(mes)* Translation keys named like the database
+- *(mes)* Machine sources authenticate as service accounts
+- *(mes)* Translated resource names and navigation groups
+- *(mes)* Machine ingest on the CRUD route through the service account
+- *(mes)* Backoffice strings from the mes lang file
+- *(mes)* Agent loss markers become data_dropped incidents
+- *(mes)* Configuration delivery to the edge agent
+- *(mes)* Agent configuration versions and reports on the source page
+
+### 🐛 Bug Fixes
+
+- *(mes)* Restrict deleting a company that still has work centers
+- *(mes)* Key component reservations by a per-order material line id
+- *(mes)* Machine connectivity review fixes
+- *(mes)* Component reservation self-block, completion leak, reserve guard
+- *(mes)* MQTT bridge review fixes
+- *(mes)* Review fixes for machine states (working-time availability, downtime states default, merge keeps operator cause, stale sync, device lock)
+- *(mes)* Close the minors of the machine states review
+- *(mes)* Review fixes for machine counts (once-only target, per-device totals, retry re-tally, guarded quantity columns)
+- *(mes)* Close the minors of the machine counts review
+- *(mes)* Review fixes for probe measurements (locked check resolution, execute sees machine rows, attacher tolerates a bad row)
+- *(mes)* Put the process summaries in the renamed machine connectivity group
+- *(mes)* Review fixes for process values (queued unique summaries, no degraded summaries, rollup backlog, chunked prune, out-of-range values)
+- *(mes)* Close the deferred items of process values and probe measurements
+- *(mes)* Forget the signal map after commit on the model connection
+- *(mes)* Operator guide on service accounts, resolver on the model's deleted-at column
+- *(mes)* Machine messages refuse generic CRUD writes, named incident reasons
+- *(mes)* The MES seeder declares its dependency on the permission refresh
+- *(mes)* Serve agent configurations as published, safe numbering and deletes
+- Machine agent ACL requires an active source, Activate shows validation errors, docs wording (final review M1, M3, M4, M5)
+- *(mes)* A single late message (agent resend after an outage) no longer opens clock_skew
+- *(mes)* Update module priority from 20 to 30
+- *(mes)* Machine sources are administered in the backoffice only
+- *(mes)* Loss ranges are ordered and a config rejection opens one incident per open version and outcome
+- *(mes)* A resent loss marker is one incident, no clock-behind check over MQTT, upgrade note
+
+### 💼 Other
+
+- Own MES runtime setting definition tests
+
+Moved from Core so Core tests no longer depend on MES.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_016bQ9UWLJjnRQA6sGEYNGPL
+
+### 🚜 Refactor
+
+- *(mes)* Update navigation group labels to include 'MES' prefix for consistency
+- *(mes)* Streamline language files for actions, entities, fields, messages, navigation, status, and types
+- Import Core VersionStrategy (D14)
+
+### 📚 Documentation
+
+- *(mes)* User guide covers history and validation of lines and operations
+- *(mes)* Machine connectivity foundation documentation
+- *(mes)* Document component reservation through ERP
+- *(mes)* List the MQTT configuration keys in full
+- *(mes)* MQTT bridge and Sparkplug B documentation
+- *(mes)* Describe the navigation group order the panel test enforces
+- API access control
+- Verbatim AGPL-3.0 licence text, copyright in the README
+- *(mes)* Edge agent backend (service accounts, configuration delivery, losses)
+- *(mes)* Agent configuration stored as the same JSON value; agent ACL on the active source
+- *(mes)* Drop the development database upgrade note
+- Point the links to the getlaraplate organization
+- Fix a typo in the work in progress notice
+- Use the Laraplate brand logo in the README
+
+### 🧪 Testing
+
+- Follow the renamed API switch
+
+### ⚙️ Miscellaneous Tasks
+
+- *(mes)* Module priority 20, second tier after ERP
+- *(mes)* Null-guard bom_snapshot in the stride guard
+- *(mes)* Remove the unused nwidart module scaffold
+- Point repository links to the getlaraplate organization
+- Rename the Composer package to the getlaraplate vendor
+- Align the package description with the repository description
+- Align the module description with the repository description
+- Call the organization CLA workflow
+- Rename the repository and package from laraplate-<module> to lara<module>
+
 ## [1.1.1] - 2026-09-29
 
 ### 🚀 Features
