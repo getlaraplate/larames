@@ -401,8 +401,10 @@ the application built on the services and domain actions.
 - `mes.lots.number_format` — lot code tokens `{YEAR}{MONTH}{DAY}{SEQ}`.
 - `mes.production.default_warehouse` — `[company_id => warehouse_id]` map for
   sales-order-driven PO creation (falls back to the company's sole warehouse).
-- `mes.production.daily_minutes` / `mes.production.default_lead_time_days` —
-  routing-based lead-time estimation and its no-routing fallback.
+- `mes.production.daily_minutes` (`480`) / `mes.production.default_lead_time_days` (`5`) —
+  routing-based lead-time estimation and its no-routing fallback. Settings of module `MES` (group
+  `mes`), seeded by `MESDatabaseSeeder` and overlaid onto config; an operator's value survives a
+  re-seed. Read as at least `1`, so a stored `0` behaves as `1`.
 - `mes.notifications.stock_shortage.channels` / `.recipients.roles` — channels
   (default `database`) and recipient roles for the shortage notification.
 - `mes.machine.queue` (`mes-machine`), `.max_samples` (5000), `.max_body_kb` (1024),

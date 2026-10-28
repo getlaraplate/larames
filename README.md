@@ -77,10 +77,6 @@ MES_ENABLED=true
 MES_QUEUE_CONNECTION=database
 MES_QUEUE_NAME=mes
 
-# Production-order auto-creation from confirmed sales orders
-MES_PRODUCTION_DAILY_MINUTES=480
-MES_PRODUCTION_DEFAULT_LEAD_TIME_DAYS=5
-
 # Machine connectivity (see docs/MACHINE_CONNECTIVITY.md)
 MES_MACHINE_QUEUE=mes-machine
 MES_MACHINE_MAX_SAMPLES=5000
@@ -112,6 +108,16 @@ The receiving warehouse for auto-created production orders is resolved per compa
 Set it explicitly through the `mes.production.default_warehouse` config map
 (`[company_id => warehouse_id]`) when a company owns more than one warehouse; with a
 single warehouse the module picks it automatically.
+
+Production planning tunables are Settings (module `MES`, group `mes`), edited like any other Setting
+and applied without a restart. The seeder (`MESDatabaseSeeder`) creates them with the defaults below
+and a re-seed keeps any value an operator changed. Both are floored where they are read, so a stored
+`0` behaves as `1`.
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `production.daily_minutes` | `480` | Working minutes per day used to turn the routing's standard minutes into a planned lead time. |
+| `production.default_lead_time_days` | `5` | Planned lead time in working days when the item has no routing to estimate from. |
 
 > The effective set of environment variables will be expanded as domain features are introduced.
 

@@ -64,6 +64,24 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
                 'group_name' => 'mes',
                 'description' => 'Lot number generation format',
             ],
+            [
+                'name' => 'production.daily_minutes',
+                'value' => 480.0,
+                'encrypted' => false,
+                'choices' => null,
+                'type' => SettingTypeEnum::Float,
+                'group_name' => 'mes',
+                'description' => 'Working minutes per day used to turn routing minutes into a planned lead time',
+            ],
+            [
+                'name' => 'production.default_lead_time_days',
+                'value' => 5,
+                'encrypted' => false,
+                'choices' => null,
+                'type' => SettingTypeEnum::Integer,
+                'group_name' => 'mes',
+                'description' => 'Planned lead time in working days when the item has no routing',
+            ],
         ];
     }
 

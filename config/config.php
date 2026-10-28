@@ -37,11 +37,15 @@ return [
     | - default_lead_time_days: planned lead time (working days) applied when the
     |   item has no routing to estimate from.
     |
+    | daily_minutes and default_lead_time_days are Settings of module MES
+    | (production.daily_minutes, production.default_lead_time_days); the values
+    | here are the defaults used until the Setting rows exist.
+    |
     */
     'production' => [
         'default_warehouse' => [],
-        'daily_minutes' => (float) env('MES_PRODUCTION_DAILY_MINUTES', 480),
-        'default_lead_time_days' => (int) env('MES_PRODUCTION_DEFAULT_LEAD_TIME_DAYS', 5),
+        'daily_minutes' => 480.0,
+        'default_lead_time_days' => 5,
     ],
 
     /*
