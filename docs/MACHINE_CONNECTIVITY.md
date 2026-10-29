@@ -566,6 +566,13 @@ document is stored and served as the same JSON value it was published as: an emp
 every database engine. It is the value that is kept, not the bytes: MySQL's `JSON` column may reorder the keys of an
 object and keeps only the last of duplicate keys, which carries no meaning for a schema-validating agent.
 
+**Plugin entries.** The backend does not interpret `plugins`, but the agent refuses an entry it cannot verify, so a
+published document must give each plugin its `id`, its `path`, the `sha256` of the binary and the `manifest_sha256`
+of the `plugin.json` next to it (both printed by `laraplate-edge plugin hash <dir>` on the machine), and optionally
+`max_memory`. An agent fed by the backend runs plugins only from the `plugins_dir` set in its own bootstrap file: a
+relative `path` resolves inside it, an absolute one must lie inside it, and without `plugins_dir` every plugin entry
+is refused. A document that breaks these rules is rejected by the agent, which reports it as `rejected`.
+
 **Secrets never travel in the document.** Credentials are `secret://` references that the agent resolves on its own
 machine; the backend holds no secret value.
 

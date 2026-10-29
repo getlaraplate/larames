@@ -311,7 +311,8 @@ the foundation, with no consumer of the machine data yet.
   `mes_machine_sources.active_config_id` (FK added by the configurations migration) and `last_config_version`.
   `MachineAgentConfigService`: `publish(MachineSource, stdClass|string $document, ?User)` validates structure
   (`laraplate-edge-config/1`, D3: top-level keys, integer `version`, `inputs`/`outputs`/`plugins` as arrays of objects
-  with a string `id`; copy in `resources/edge/laraplate-edge-config-1.schema.json`), numbers the version from the locked
+  with a string `id`; copy in `resources/edge/laraplate-edge-config-1.schema.json`; plugin fields are not checked, but
+  the agent requires `sha256` and `manifest_sha256` per plugin and runs plugins only from its bootstrap `plugins_dir`), numbers the version from the locked
   source row, writes it into the document and activates it; `activate()` of a non-active version publishes it again as a
   new version (versions only grow, D2); `recordReport()` stores the report and opens `config_rejected`
   (`{version, outcome, errors}`) for `rejected` and `rolled_back` (D4). Routes: `GET api/v1/detail/mes/machine-agent-configs`
