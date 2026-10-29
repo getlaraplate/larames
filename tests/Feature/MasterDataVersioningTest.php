@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Modules\Core\Enums\VersionChangeType;
 use Modules\Core\Enums\VersionStrategy;
 use Modules\Core\Models\Setting;
 use Modules\Core\Models\Version;
@@ -77,12 +78,10 @@ it('keeps the whole image of a line or operation that is deleted for good', func
 
     expect($class::query()->whereKey($id)->exists())->toBeFalse();
 
-    $kept = Version::query()->where('versionable_type', $model->getMorphClass())->where('versionable_id', $id)->get();
+    $snapshot = Version::query()->where('versionable_type', $model->getMorphClass())->where('versionable_id', $id)->sole();
 
-    $image = $kept->pluck('contents')->first(static fn (mixed $contents): bool => is_array($contents) && ($contents['id'] ?? null) === $id);
-
-    expect($image)->not->toBeNull()
-        ->and($image[$attribute])->toEqual($original);
+    expect($snapshot->change_type)->toBe(VersionChangeType::Deleted)
+        ->and($snapshot->original_contents[$attribute])->toEqual($original);
 })->with([
     'bom line' => [BomLine::class, fn () => BomLine::factory()->create(['quantity' => 7]), 'quantity'],
     'routing operation' => [RoutingOperation::class, fn () => RoutingOperation::factory()->create(['description' => 'Weld seam']), 'description'],
