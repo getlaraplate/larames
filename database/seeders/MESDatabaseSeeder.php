@@ -16,6 +16,7 @@ use Modules\Core\Database\Seeders\PermissionRefreshSeeder;
 use Modules\Core\Models\ACL;
 use Modules\Core\Models\Permission;
 use Modules\Core\Models\Role;
+use Modules\Core\Models\Setting;
 use Modules\Core\Overrides\Seeder;
 use Modules\Core\Seeding\Contracts\DeclaresSeedDependencies;
 use Modules\Core\Seeding\SeedReconciler;
@@ -90,13 +91,11 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
      */
     public function run(): void
     {
-        $outcome = app(SeedReconciler::class)->reconcile(
-            self::internalSettingsDefinition('MES', self::runtimeSettingDefinitions()),
-        );
+        $this->logOperation(Setting::class);
 
-        $this->command?->line(
-            '    - created ' . count($outcome->created) . ', realigned ' . count($outcome->realigned) . ", unchanged {$outcome->unchanged}",
-        );
+        $this->logReconciliation(app(SeedReconciler::class)->reconcile(
+            self::internalSettingsDefinition('MES', self::runtimeSettingDefinitions()),
+        ));
 
         $this->ensureDomainPermissions();
         $this->machineAgentRole();
@@ -127,14 +126,20 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
     {
         app(PermissionRegistrar::class)->forgetCachedPermissions();
         $permission = new Permission;
+        $this->logOperation(Permission::class);
 
-        foreach (app(PermissionManifest::class)->namesFor('MES') as $name) {
-            $permission->newQuery()->firstOrCreate(['name' => $name]);
+        $names = app(PermissionManifest::class)->namesFor('MES');
+        $created = 0;
+
+        foreach ($names as $name) {
+            if ($permission->newQuery()->firstOrCreate(['name' => $name])->wasRecentlyCreated) {
+                $created++;
+            }
         }
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
 
-        $this->command?->line('    - MES domain permissions <fg=green>updated</>');
+        $this->logOutcome($created, 0, count($names) - $created);
     }
 
     /**
@@ -159,6 +164,8 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
 
         $guard = CoreDatabaseSeeder::API_GUARD;
         $role = $role_class::query()->where(['name' => self::MACHINE_AGENT_ROLE, 'guard_name' => $guard])->first();
+        $created = $role === null ? 1 : 0;
+        $unchanged = 1 - $created;
 
         if ($role === null) {
             $role = $this->create($role_class, [
@@ -177,34 +184,51 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
         foreach ($permission_names as $permission_name) {
             $permission_id = $permission_class::query()->where(['name' => $permission_name, 'guard_name' => $guard])->value('id');
 
-            if ($permission_id !== null) {
-                $role->permissions()->syncWithoutDetaching([$permission_id]);
+            if ($permission_id === null) {
+                continue;
+            }
+
+            if ($role->permissions()->syncWithoutDetaching([$permission_id])['attached'] === []) {
+                $unchanged++;
+            } else {
+                $created++;
             }
         }
 
-        $this->ensureAcl(
+        match ($this->ensureAcl(
             $permission_class,
             $role,
             PermissionName::forClass(MachineAgentConfig::class, ActionEnum::Select->value),
             self::ownSourceConfigsAcl(),
             'Machine agents read only the configurations of their own source.',
-        );
+        )) {
+            true => $created++,
+            false => $unchanged++,
+            null => null,
+        };
 
         app(PermissionRegistrar::class)->forgetCachedPermissions();
+
+        $this->logOutcome($created, 0, $unchanged);
     }
 
     /**
      * Creates the ACL of a permission for a role unless one exists: a re-seed never overwrites what an operator changed.
      * A permission that does not exist yet is skipped, like the grants of {@see self::machineAgentRole()}.
+     * Returns true when it created the ACL, false when one existed, null when the permission is missing.
      *
      * @param  class-string<Permission>  $permission_class
      */
-    private function ensureAcl(string $permission_class, Role $role, string $permission_name, FiltersGroup $filters, string $description): void
+    private function ensureAcl(string $permission_class, Role $role, string $permission_name, FiltersGroup $filters, string $description): ?bool
     {
         $permission = $permission_class::query()->where(['name' => $permission_name, 'guard_name' => $role->guard_name])->first(['id']);
 
-        if ($permission === null || ACL::query()->whereBelongsTo($permission, 'permission')->whereBelongsTo($role, 'role')->exists()) {
-            return;
+        if ($permission === null) {
+            return null;
+        }
+
+        if (ACL::query()->whereBelongsTo($permission, 'permission')->whereBelongsTo($role, 'role')->exists()) {
+            return false;
         }
 
         $acl = new ACL;
@@ -219,5 +243,7 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
             'is_active' => true,
         ]);
         $acl->save();
+
+        return true;
     }
 }
