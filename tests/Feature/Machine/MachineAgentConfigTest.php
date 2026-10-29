@@ -48,7 +48,12 @@ function agentConfigFields(array $overrides = []): array
             'devices' => [['device' => 'press-07', 'points' => [['signal' => 'state', 'address' => 'ns=3;s=Machine.State', 'read' => 'subscribe']]]],
         ]],
         'outputs' => [['id' => 'laraplate-main', 'type' => 'laraplate-http', 'url' => 'https://erp.example.com', 'token' => 'secret://keystore/laraplate-main']],
-        'plugins' => [['id' => 'fanuc', 'path' => '/opt/laraplate-edge/plugins/fanuc-focas', 'sha256' => 'abc']],
+        'plugins' => [[
+            'id' => 'fanuc',
+            'path' => '/opt/laraplate-edge/plugins/fanuc-focas/fanuc-focas',
+            'sha256' => str_repeat('ab', 32),
+            'manifest_sha256' => str_repeat('cd', 32),
+        ]],
         ...$overrides,
     ];
 }
