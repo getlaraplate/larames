@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-11-18
+
+### 🚀 Features
+
+- *(mes)* Production defaults are settings
+
+### 📚 Documentation
+
+- Require Laravel 13
+
+### 🧪 Testing
+
+- *(versioning)* Read the hard delete snapshot in the D55 format
+
+### ⚙️ Miscellaneous Tasks
+
+- *(seeders)* Report each seeding step with one summary line
+- *(mes)* Plugin entries carry the hashes the edge agent requires
+- Drop the license-compliance-checker repository
+- *(deps)* Require Laravel 13
+
 ## [1.2.0] - 2026-10-21
 
 ### 🚀 Features
