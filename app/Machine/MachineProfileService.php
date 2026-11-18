@@ -8,6 +8,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Validation\Validator as ValidatorInstance;
 use JsonException;
 use Modules\MES\Enums\DowntimeCause;
 use Modules\MES\Enums\MachineState;
@@ -136,7 +137,7 @@ final class MachineProfileService
             $config = $this->configFor($signal, $definition);
 
             Validator::make(['config' => $config], array_diff_key(MachineSignal::rulesForRole($role), ['quality_plan_characteristic_id' => true]))
-                ->after(static function ($validator) use ($state_or_alarm, $has_map, $config, $index): void {
+                ->after(static function (ValidatorInstance $validator) use ($state_or_alarm, $has_map, $config, $index): void {
                     if ($state_or_alarm && ! $has_map && ($config['map'] ?? []) === []) {
                         $validator->errors()->add("definition.signals.{$index}.config", 'A state or alarm signal needs a map, its own or the profile\'s.');
                     }

@@ -8,6 +8,7 @@ use Filament\Forms\Components\KeyValue;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -15,9 +16,9 @@ use Illuminate\Validation\Rule;
 use Modules\Core\Enums\CoreTables;
 use Modules\Core\Filament\Utils\HasForm;
 use Modules\Core\Models\User;
-use Modules\MES\Models\MachineSource;
 use Modules\MES\Enums\MachineTransport;
 use Modules\MES\Machine\Normalizers\NormalizerRegistry;
+use Modules\MES\Models\MachineSource;
 
 final class MachineSourceForm
 {
@@ -60,7 +61,7 @@ final class MachineSourceForm
                     ->required(),
                 TextInput::make('mqtt_topic')
                     ->maxLength(255)
-                    ->visible(static fn ($get): bool => MachineTransport::Mqtt->value === $get('transport')),
+                    ->visible(static fn (Get $get): bool => MachineTransport::Mqtt->value === $get('transport')),
                 KeyValue::make('normalizer_options')
                     ->helperText(__('mes.help.normalizerOptions')),
                 TextInput::make('heartbeat_timeout_seconds')
@@ -85,7 +86,7 @@ final class MachineSourceForm
         $query->getQuery()
             ->where($query->getModel()->qualifyColumn('is_service_account'), true)
             // An account speaks for one source only: offer the ones no other source uses.
-            ->whereNotIn($query->getModel()->qualifyColumn('id'), MachineSource::query()->withoutGlobalScopes()->whereNotNull('user_id')->when($record?->getKey(), static fn ($sources, mixed $key) => $sources->whereKeyNot($key))->select('user_id')->toBase());
+            ->whereNotIn($query->getModel()->qualifyColumn('id'), MachineSource::query()->withoutGlobalScopes()->whereNotNull('user_id')->when($record?->getKey(), static fn (Builder $sources, mixed $key): Builder => $sources->whereKeyNot($key))->select('user_id')->toBase());
 
         return $query;
     }

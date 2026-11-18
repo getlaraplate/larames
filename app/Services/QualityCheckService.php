@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MES\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Modules\MES\Enums\NonConformanceStatus;
 use Modules\MES\Enums\QualityCheckStatus;
 use Modules\MES\Models\NonConformance;
@@ -138,7 +139,7 @@ final class QualityCheckService
         return QualityCheckMeasurement::query()
             ->where('quality_check_id', $check->id)
             ->where('is_within_limits', false)
-            ->when($source !== null, static fn ($query) => $query->where('source', $source))
+            ->when($source !== null, static fn (Builder $query): Builder => $query->where('source', $source))
             ->exists();
     }
 

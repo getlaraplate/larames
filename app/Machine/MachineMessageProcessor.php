@@ -6,6 +6,7 @@ namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineState;
 use Modules\MES\Enums\SampleQuality;
@@ -326,7 +327,7 @@ final class MachineMessageProcessor
      */
     private function touch(MachineSource $source, array $device_ids, CarbonInterface $at): void
     {
-        $forward = static fn ($query) => $query->where(static fn ($inner) => $inner->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $at));
+        $forward = static fn (QueryBuilder $query): QueryBuilder => $query->where(static fn (QueryBuilder $inner): QueryBuilder => $inner->whereNull('last_seen_at')->orWhere('last_seen_at', '<', $at));
 
         $forward(MachineSource::query()->withoutGlobalScopes()->toBase()->where('id', $source->id))->update(['last_seen_at' => $at]);
 

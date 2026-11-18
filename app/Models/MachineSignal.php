@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Models;
 
 use Closure;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Validation\Rule;
@@ -197,7 +198,7 @@ final class MachineSignal extends Model implements IsPartOfParent
                 ->withoutGlobalScopes()
                 ->where('role', SignalRole::State->value)
                 ->whereNull('deleted_at')
-                ->when($this->exists, fn ($query) => $query->whereKeyNot($this->getKey()))
+                ->when($this->exists, fn (Builder $query): Builder => $query->whereKeyNot($this->getKey()))
                 ->whereIn('device_id', MachineDevice::query()->withoutGlobalScopes()->where('work_center_id', $device->work_center_id)->where('is_active', true)->whereNull('deleted_at')->where('id', '!=', $device->id)->select('id'))
                 ->exists();
 

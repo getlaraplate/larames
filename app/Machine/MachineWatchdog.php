@@ -5,24 +5,25 @@ declare(strict_types=1);
 namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
-use Modules\MES\Enums\MachineIncidentType;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
+use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineMessageStatus;
 use Modules\MES\Enums\MachineState;
+use Modules\MES\Enums\MachineTransport;
 use Modules\MES\Enums\SignalRole;
+use Modules\MES\Jobs\ProcessMachineMessageJob;
 use Modules\MES\Listeners\MachineStateRecorder;
+use Modules\MES\Machine\Mqtt\MachineBridge;
 use Modules\MES\Machine\States\MachineStateChange;
 use Modules\MES\Machine\States\MachineStateIntervals;
 use Modules\MES\Machine\States\MachineTime;
-use Modules\MES\Models\MachineSignal;
-use Modules\MES\Models\MachineStateInterval;
-use Modules\MES\Enums\MachineTransport;
-use Modules\MES\Jobs\ProcessMachineMessageJob;
-use Modules\MES\Machine\Mqtt\MachineBridge;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineIncident;
 use Modules\MES\Models\MachineMessage;
+use Modules\MES\Models\MachineSignal;
 use Modules\MES\Models\MachineSource;
+use Modules\MES\Models\MachineStateInterval;
 
 /**
  * Notices what stopped sending. A device silent for longer than its source's `heartbeat_timeout_seconds`
@@ -58,7 +59,7 @@ final class MachineWatchdog
 
         $devices = MachineDevice::query()
             ->where('is_active', true)
-            ->whereHas('source', static fn ($sources) => $sources->where('is_active', true))
+            ->whereHas('source', static fn (Builder $sources): Builder => $sources->where('is_active', true))
             ->with('source')
             ->get();
 

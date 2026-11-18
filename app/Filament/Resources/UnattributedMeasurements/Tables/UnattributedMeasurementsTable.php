@@ -12,6 +12,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\Core\Models\User;
 use Modules\Core\Support\PermissionName;
 use Modules\MES\Models\MachineSignal;
@@ -25,7 +26,7 @@ final class UnattributedMeasurementsTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(static fn ($query) => $query->with(['signal.characteristic', 'signal.device.workCenter']))
+            ->modifyQueryUsing(static fn (Builder $query): Builder => $query->with(['signal.characteristic', 'signal.device.workCenter']))
             ->defaultSort('ts', 'desc')
             ->columns([
                 TextColumn::make('signal.key')->searchable()->sortable(),
@@ -40,8 +41,8 @@ final class UnattributedMeasurementsTable
             ->filters([
                 TernaryFilter::make('assigned')
                     ->queries(
-                        true: static fn ($query) => $query->whereNotNull('assigned_at'),
-                        false: static fn ($query) => $query->whereNull('assigned_at'),
+                        true: static fn (Builder $query): Builder => $query->whereNotNull('assigned_at'),
+                        false: static fn (Builder $query): Builder => $query->whereNull('assigned_at'),
                     ),
             ])
             ->recordActions([

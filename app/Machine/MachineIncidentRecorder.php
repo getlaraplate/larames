@@ -66,7 +66,7 @@ final class MachineIncidentRecorder
             ->withoutGlobalScopes()
             ->where('source_id', $source->id)
             ->where('type', $type->value)
-            ->when($device instanceof MachineDevice, static fn ($query) => $query->where('device_id', $device?->id), static fn ($query) => $query->whereNull('device_id'))
+            ->when($device instanceof MachineDevice, static fn (Builder $query): Builder => $query->where('device_id', $device?->id), static fn (Builder $query): Builder => $query->whereNull('device_id'))
             ->whereNull('resolved_at');
     }
 }

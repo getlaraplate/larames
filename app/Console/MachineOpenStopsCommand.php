@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Modules\MES\Machine\States\MachineDowntimeDeriver;
 use Modules\MES\Models\MachineStateInterval;
@@ -28,7 +29,7 @@ final class MachineOpenStopsCommand extends Command
 
         MachineStateInterval::query()
             ->open()
-            ->whereHas('device', static fn ($devices) => $devices->where('is_active', true)->whereHas('source', static fn ($sources) => $sources->where('is_active', true)))
+            ->whereHas('device', static fn (Builder $devices): Builder => $devices->where('is_active', true)->whereHas('source', static fn (Builder $sources): Builder => $sources->where('is_active', true)))
             ->each(function (MachineStateInterval $interval) use ($deriver, &$synced): void {
                 try {
                     if ($deriver->sync($interval) !== null) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Services;
 
 use DateTimeInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Modules\MES\Machine\States\MachineTime;
 use Modules\MES\Models\MachineCount;
@@ -29,7 +30,7 @@ final class MachineCountAssigner
 
         $assigned = MachineCount::query()
             ->where('work_center_id', $operation->work_center_id)
-            ->when($company_id !== null, static fn ($query) => $query->where('company_id', $company_id))
+            ->when($company_id !== null, static fn (Builder $query): Builder => $query->where('company_id', $company_id))
             ->whereNull('production_order_operation_id')
             ->where('ts', '>=', MachineTime::db(Carbon::parse($from)))
             ->where('ts', '<', MachineTime::db(Carbon::parse($to)))

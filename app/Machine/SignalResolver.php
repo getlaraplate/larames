@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MES\Machine;
 
+use Illuminate\Contracts\Database\Eloquent\Builder as BuilderContract;
 use Illuminate\Support\Facades\Cache;
 use Modules\MES\Machine\Data\ResolvedSignal;
 use Modules\MES\Models\MachineDevice;
@@ -59,7 +60,7 @@ final class SignalResolver
             ->where('source_id', $source_id)
             ->where('is_active', true)
             ->whereNull('deleted_at')
-            ->with(['signals' => static fn ($query) => $query->withoutGlobalScopes()->whereNull('deleted_at')])
+            ->with(['signals' => static fn (BuilderContract $query): BuilderContract => $query->withoutGlobalScopes()->whereNull('deleted_at')])
             ->get()
             ->keyBy('external_id')
             ->all());

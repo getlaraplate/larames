@@ -6,6 +6,7 @@ namespace Modules\MES\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
@@ -107,7 +108,7 @@ final class MESServiceProvider extends ModuleServiceProvider
             ErpStockMovementRecorder::class,
         );
 
-        $this->app->bind(ProcessValueStore::class, static fn ($app): ProcessValueStore => match (config()->string('mes.machine.process_store')) {
+        $this->app->bind(ProcessValueStore::class, static fn (Application $app): ProcessValueStore => match (config()->string('mes.machine.process_store')) {
             'database' => $app->make(RelationalProcessValueStore::class),
             default => throw new RuntimeException(sprintf('Unknown process value store [%s]. Known stores: database.', config()->string('mes.machine.process_store'))),
         });

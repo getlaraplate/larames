@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineMessageStatus;
@@ -103,7 +104,7 @@ final class MachineMessageInbox
 
         MachineSource::query()->withoutGlobalScopes()->toBase()
             ->where('id', $source->id)
-            ->where(static fn ($query) => $query->whereNull('last_seq')->orWhere('last_seq', '<', $meta->source_seq))
+            ->where(static fn (Builder $query): Builder => $query->whereNull('last_seq')->orWhere('last_seq', '<', $meta->source_seq))
             ->update(['last_seq' => $meta->source_seq]);
     }
 

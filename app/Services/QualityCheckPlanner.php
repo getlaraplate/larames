@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\MES\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Modules\MES\Enums\QualityCheckStatus;
 use Modules\MES\Models\ProductionOrder;
@@ -67,8 +68,8 @@ final class QualityCheckPlanner
             ->where('quality_plan_id', $plan->id)
             ->when(
                 $operation_id === null,
-                static fn ($query) => $query->whereNull('production_order_operation_id'),
-                static fn ($query) => $query->where('production_order_operation_id', $operation_id),
+                static fn (Builder $query): Builder => $query->whereNull('production_order_operation_id'),
+                static fn (Builder $query): Builder => $query->where('production_order_operation_id', $operation_id),
             )
             ->exists();
 

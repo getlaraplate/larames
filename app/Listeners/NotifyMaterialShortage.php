@@ -7,6 +7,7 @@ namespace Modules\MES\Listeners;
 use function user_class;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Notification;
@@ -60,7 +61,7 @@ final class NotifyMaterialShortage implements ShouldQueue
         $user_class = user_class();
 
         return $user_class::query()
-            ->whereHas('roles', static fn ($query) => $query->whereIn('name', $roles))
+            ->whereHas('roles', static fn (Builder $query): Builder => $query->whereIn('name', $roles))
             ->get();
     }
 

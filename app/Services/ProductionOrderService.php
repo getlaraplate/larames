@@ -18,8 +18,10 @@ use Modules\MES\Events\ProductionOrderCancelled;
 use Modules\MES\Events\ProductionOrderCompleted;
 use Modules\MES\Events\ProductionOrderReleased;
 use Modules\MES\Models\Bom;
+use Modules\MES\Models\BomLine;
 use Modules\MES\Models\ProductionOrder;
 use Modules\MES\Models\Routing;
+use Modules\MES\Models\RoutingOperation;
 
 /**
  * Orchestrates the production order lifecycle: allocation of the document
@@ -209,7 +211,7 @@ final class ProductionOrderService
             return ['id' => null, 'version' => null, 'lines' => []];
         }
 
-        $lines = $bom->bomLines->map(static fn ($line): array => [
+        $lines = $bom->bomLines->map(static fn (BomLine $line): array => [
             'bom_line_id' => $line->id,
             'item_id' => $line->item_id,
             'quantity' => (float) $line->quantity,
@@ -234,7 +236,7 @@ final class ProductionOrderService
             return ['id' => null, 'version' => null, 'operations' => []];
         }
 
-        $operations = $routing->routingOperations->map(static fn ($operation): array => [
+        $operations = $routing->routingOperations->map(static fn (RoutingOperation $operation): array => [
             'routing_operation_id' => $operation->id,
             'work_center_id' => $operation->work_center_id,
             'sequence' => $operation->sequence,

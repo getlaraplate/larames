@@ -7,6 +7,7 @@ namespace Modules\MES\Filament\Resources\OperationProcessSummaries\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Modules\MES\Models\MachineSignal;
 
 final class OperationProcessSummariesTable
@@ -14,7 +15,7 @@ final class OperationProcessSummariesTable
     public static function configure(Table $table): Table
     {
         return $table
-            ->modifyQueryUsing(static fn ($query) => $query->with(['operation.productionOrder', 'signal']))
+            ->modifyQueryUsing(static fn (Builder $query): Builder => $query->with(['operation.productionOrder', 'signal']))
             ->defaultSort('last_ts', 'desc')
             ->columns([
                 TextColumn::make('operation.productionOrder.number')->label(__('mes.fields.production_order'))->searchable()->sortable(),
