@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Modules\MES\Machine;
 
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\Cache;
 use Modules\MES\Enums\MachineIncidentType;
 use Modules\MES\Enums\MachineMessageStatus;
