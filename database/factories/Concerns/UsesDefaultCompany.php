@@ -14,7 +14,7 @@ trait UsesDefaultCompany
      */
     protected function defaultCompanyId(): int
     {
-        return Company::query()->withoutGlobalScopes()->first()?->id
+        return Company::query()->withoutGlobalScopes()->first()->id
             ?? Company::query()->withoutGlobalScopes()->create([
                 'slug' => Str::limit(fake()->unique()->slug(), 64, ''),
                 'name' => fake()->company(),

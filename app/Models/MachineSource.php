@@ -201,7 +201,10 @@ final class MachineSource extends Model implements RestrictsCrudWrites
     #[Override]
     public function delete(): ?bool
     {
-        return $this->getConnection()->transaction(fn (): ?bool => parent::delete());
+        // HasVersions answers with a row count for pivots; a source is never one.
+        $deleted = $this->getConnection()->transaction(fn (): bool|int|null => parent::delete());
+
+        return is_int($deleted) ? $deleted > 0 : $deleted;
     }
 
     #[Override]
