@@ -27,7 +27,10 @@ final class MachineEnvelopeValidator
      */
     public function validate(array $envelope): array
     {
-        return Validator::make($envelope, $this->rules())->errors()->toArray();
+        return array_map(
+            static fn (array $messages): array => array_values($messages),
+            Validator::make($envelope, $this->rules())->errors()->toArray(),
+        );
     }
 
     /**

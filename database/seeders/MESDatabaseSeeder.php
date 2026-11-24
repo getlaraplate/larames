@@ -51,7 +51,7 @@ class MESDatabaseSeeder extends Seeder implements DeclaresSeedDependencies
      * {@see SeedReconciler} batches these rows into a single `upsert()`, which requires a uniform
      * column set across the whole batch — a mismatch surfaces as a binding-count SQL error.
      *
-     * @return array<int, array{name: string, value: mixed, encrypted: bool, choices: ?array<int, mixed>, type: SettingTypeEnum, group_name: string, description: string}>
+     * @return list<array{name: string, value: mixed, encrypted: bool, choices: ?array<int, mixed>, type: SettingTypeEnum, group_name: string, description: string}>
      */
     public static function runtimeSettingDefinitions(): array
     {
