@@ -16,11 +16,27 @@ use Modules\Core\Overrides\Model;
 use Modules\ERP\Concerns\BelongsToCompany;
 use Modules\ERP\Enums\ERPTables;
 use Modules\MES\Database\Factories\WorkCenterFactory;
-use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\MachineState;
+use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\WorkCenterType;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property string $code
+ * @property string $name
+ * @property WorkCenterType $type
+ * @property numeric-string $capacity_per_hour
+ * @property string $capacity_uom
+ * @property bool $is_active
+ * @property int $micro_stop_threshold_seconds
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
+ * @property array<array-key, mixed>|null $downtime_states
+ */
 final class WorkCenter extends Model implements IActivatableModel
 {
     use BelongsToCompany, HasActivation;
@@ -110,16 +126,6 @@ final class WorkCenter extends Model implements IActivatableModel
     }
 
     /**
-     * Create a new factory instance for the model.
-     *
-     * @return Factory<WorkCenter>
-     */
-    protected static function newFactory(): Factory
-    {
-        return WorkCenterFactory::new();
-    }
-
-    /**
      * Whether a stop in this state, lasting longer than the micro-stop threshold, is a downtime.
      * A work center stored without a list uses the default four states.
      */
@@ -132,6 +138,16 @@ final class WorkCenter extends Model implements IActivatableModel
         $states = is_array($this->downtime_states) && $this->downtime_states !== [] ? $this->downtime_states : ['fault', 'stopped', 'setup', 'maintenance'];
 
         return in_array($state->value, $states, true);
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return Factory<WorkCenter>
+     */
+    protected static function newFactory(): Factory
+    {
+        return WorkCenterFactory::new();
     }
 
     /**

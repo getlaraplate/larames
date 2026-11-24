@@ -29,6 +29,8 @@ use Override;
  * @property list<string>|null $errors
  * @property string $agent_version
  * @property \Illuminate\Support\Carbon $reported_at
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class MachineAgentConfigReport extends Model implements RestrictsCrudWrites
 {

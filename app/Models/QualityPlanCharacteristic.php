@@ -25,6 +25,8 @@ use Override;
  * @property string|null $upper_limit
  * @property int $sort_order
  * @property int $required_samples
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
  */
 final class QualityPlanCharacteristic extends Model implements IsPartOfParent
 {

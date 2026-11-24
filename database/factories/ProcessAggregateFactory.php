@@ -25,7 +25,7 @@ final class ProcessAggregateFactory extends Factory
     protected $model = ProcessAggregate::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<ProcessAggregate>, mixed>
      */
     #[Override]
     public function definition(): array

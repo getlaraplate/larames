@@ -20,6 +20,10 @@ use Override;
  * @property string $model
  * @property string $version
  * @property array<string, mixed> $definition
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
  */
 final class MachineProfile extends Model
 {

@@ -35,6 +35,8 @@ use Override;
  * Written only by the ingest (HTTP route and MQTT bridge) and the processing pipeline: the generic CRUD refuses every
  * write, so the `insert` permission the machine agents hold opens the ingest route alone, never Core's
  * `insert/{module}/{entity}` under another spelling of the path.
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class MachineMessage extends Model implements RestrictsCrudWrites
 {

@@ -25,7 +25,7 @@ final class MachineCountFactory extends Factory
     protected $model = MachineCount::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineCount>, mixed>
      */
     #[Override]
     public function definition(): array

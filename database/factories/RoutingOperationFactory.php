@@ -21,7 +21,7 @@ final class RoutingOperationFactory extends Factory
     protected $model = RoutingOperation::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<RoutingOperation>, mixed>
      */
     #[Override]
     public function definition(): array

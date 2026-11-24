@@ -23,7 +23,7 @@ final class UnmappedSignalFactory extends Factory
     protected $model = UnmappedSignal::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<UnmappedSignal>, mixed>
      */
     #[Override]
     public function definition(): array

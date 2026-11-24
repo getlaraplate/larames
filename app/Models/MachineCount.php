@@ -28,6 +28,8 @@ use Override;
  * @property string $scrap
  * @property string $total
  * @property string $raw_value
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class MachineCount extends Model implements IsPartOfParent
 {

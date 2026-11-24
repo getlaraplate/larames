@@ -13,6 +13,16 @@ use Modules\Core\Models\Concerns\HasActivation;
 use Modules\MES\Database\Factories\ShiftFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property string $name
+ * @property string $start_time
+ * @property string $end_time
+ * @property bool $is_active
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class Shift extends Model implements IActivatableModel
 {
     use HasActivation, HasFactory;

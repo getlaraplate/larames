@@ -22,7 +22,7 @@ final class ProductionOrderOperationFactory extends Factory
     protected $model = ProductionOrderOperation::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<ProductionOrderOperation>, mixed>
      */
     #[Override]
     public function definition(): array

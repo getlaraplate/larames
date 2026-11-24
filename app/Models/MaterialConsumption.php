@@ -14,6 +14,22 @@ use Modules\ERP\Models\Warehouse;
 use Modules\MES\Database\Factories\MaterialConsumptionFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $production_order_id
+ * @property int|null $production_order_operation_id
+ * @property int $item_id
+ * @property int $warehouse_id
+ * @property numeric-string $quantity_planned
+ * @property numeric-string $quantity_consumed
+ * @property numeric-string $variance
+ * @property string $uom
+ * @property bool $is_backflush
+ * @property bool $stock_shortage
+ * @property \Carbon\CarbonImmutable $recorded_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class MaterialConsumption extends Model implements IsPartOfParent
 {
     use HasFactory;

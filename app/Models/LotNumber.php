@@ -13,6 +13,18 @@ use Modules\ERP\Models\Item;
 use Modules\MES\Database\Factories\LotNumberFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property int $item_id
+ * @property int|null $production_order_id
+ * @property int|null $warehouse_id
+ * @property string $code
+ * @property numeric-string $quantity
+ * @property \Carbon\CarbonImmutable|null $produced_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class LotNumber extends Model
 {
     use HasFactory;

@@ -24,7 +24,7 @@ final class WorkCenterFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * @return array<string, mixed>
+     * @return array<model-property<WorkCenter>, mixed>
      */
     #[Override]
     public function definition(): array

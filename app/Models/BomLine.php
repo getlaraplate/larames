@@ -20,6 +20,16 @@ use Modules\MES\Enums\ConsumptionMethod;
 use Modules\MES\Enums\MESTables;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $bom_id
+ * @property int $item_id
+ * @property numeric-string $quantity
+ * @property string $uom
+ * @property ConsumptionMethod $consumption_method
+ * @property int|null $routing_operation_id
+ * @property int $sort_order
+ */
 final class BomLine extends Model implements IsPartOfParent
 {
     use HasFactory;

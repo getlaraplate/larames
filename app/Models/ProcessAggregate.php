@@ -26,6 +26,8 @@ use Override;
  * @property string $avg
  * @property string $last
  * @property int $count
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class ProcessAggregate extends Model implements IsPartOfParent
 {

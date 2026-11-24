@@ -23,6 +23,8 @@ use Override;
  * @property int $alias
  * @property string $name
  * @property \Illuminate\Support\Carbon $declared_at
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class SparkplugAlias extends Model implements IsPartOfParent
 {

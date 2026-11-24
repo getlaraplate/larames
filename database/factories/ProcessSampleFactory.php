@@ -25,7 +25,7 @@ final class ProcessSampleFactory extends Factory
     protected $model = ProcessSample::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<ProcessSample>, mixed>
      */
     #[Override]
     public function definition(): array

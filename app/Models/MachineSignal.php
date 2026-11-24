@@ -30,6 +30,10 @@ use Override;
  * @property ?string $unit
  * @property array<string, mixed>|null $config
  * @property ?int $quality_plan_characteristic_id
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
  */
 final class MachineSignal extends Model implements IsPartOfParent
 {

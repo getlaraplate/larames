@@ -25,6 +25,8 @@ use Override;
  * @property QualityCheckStatus $status
  * @property string|null $notes
  * @property \Illuminate\Support\Carbon|null $checked_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
  */
 final class QualityCheck extends Model
 {

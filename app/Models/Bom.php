@@ -18,6 +18,19 @@ use Modules\ERP\Models\Item;
 use Modules\MES\Database\Factories\BomFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property int $item_id
+ * @property string $version
+ * @property \Carbon\CarbonImmutable $valid_from
+ * @property \Carbon\CarbonImmutable|null $valid_to
+ * @property bool $is_active
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
+ */
 final class Bom extends Model implements IActivatableModel
 {
     use BelongsToCompany, HasActivation;

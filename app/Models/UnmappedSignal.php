@@ -21,6 +21,8 @@ use Override;
  * @property ?string $last_value
  * @property \Illuminate\Support\Carbon $last_seen_at
  * @property int $seen_count
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class UnmappedSignal extends Model
 {

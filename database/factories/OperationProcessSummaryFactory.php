@@ -26,7 +26,7 @@ final class OperationProcessSummaryFactory extends Factory
     protected $model = OperationProcessSummary::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<OperationProcessSummary>, mixed>
      */
     #[Override]
     public function definition(): array

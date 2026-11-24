@@ -13,6 +13,16 @@ use Modules\Core\Contracts\IsPartOfParent;
 use Modules\MES\Database\Factories\ShiftInstanceFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $shift_id
+ * @property int|null $work_center_id
+ * @property \Carbon\CarbonImmutable $date
+ * @property \Carbon\CarbonImmutable $starts_at
+ * @property \Carbon\CarbonImmutable $ends_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class ShiftInstance extends Model implements IsPartOfParent
 {
     use HasFactory;

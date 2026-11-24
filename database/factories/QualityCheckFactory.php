@@ -21,7 +21,7 @@ final class QualityCheckFactory extends Factory
     protected $model = QualityCheck::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<QualityCheck>, mixed>
      */
     #[Override]
     public function definition(): array

@@ -27,6 +27,8 @@ use Override;
  * @property \Illuminate\Support\Carbon $ts
  * @property string $value
  * @property SampleQuality $quality
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class ProcessSample extends Model implements IsPartOfParent
 {

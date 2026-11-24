@@ -26,7 +26,7 @@ final class MachineMessageFactory extends Factory
     protected $model = MachineMessage::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineMessage>, mixed>
      */
     #[Override]
     public function definition(): array

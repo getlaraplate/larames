@@ -22,7 +22,7 @@ final class SerialNumberFactory extends Factory
     protected $model = SerialNumber::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<SerialNumber>, mixed>
      */
     #[Override]
     public function definition(): array

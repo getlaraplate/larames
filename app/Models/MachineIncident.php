@@ -24,6 +24,8 @@ use Override;
  * @property array<string, mixed> $detail
  * @property \Illuminate\Support\Carbon $occurred_at
  * @property ?\Illuminate\Support\Carbon $resolved_at
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class MachineIncident extends Model
 {

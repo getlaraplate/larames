@@ -22,7 +22,7 @@ final class WorkCenterCalendarFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * @return array<string, mixed>
+     * @return array<model-property<WorkCenterCalendar>, mixed>
      */
     #[Override]
     public function definition(): array

@@ -24,7 +24,7 @@ final class MaterialConsumptionFactory extends Factory
     protected $model = MaterialConsumption::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MaterialConsumption>, mixed>
      */
     #[Override]
     public function definition(): array

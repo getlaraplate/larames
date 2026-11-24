@@ -21,7 +21,7 @@ final class DowntimeFactory extends Factory
     protected $model = Downtime::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<Downtime>, mixed>
      */
     #[Override]
     public function definition(): array

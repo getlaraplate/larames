@@ -21,7 +21,7 @@ final class NonConformanceFactory extends Factory
     protected $model = NonConformance::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<NonConformance>, mixed>
      */
     #[Override]
     public function definition(): array

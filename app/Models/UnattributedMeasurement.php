@@ -28,6 +28,8 @@ use Override;
  * @property string|null $serial
  * @property array<string, mixed>|null $context
  * @property \Illuminate\Support\Carbon|null $assigned_at
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class UnattributedMeasurement extends Model
 {
