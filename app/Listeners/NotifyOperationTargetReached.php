@@ -8,7 +8,6 @@ use function user_class;
 
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\Notification;
 use Modules\MES\Events\OperationTargetReached;
@@ -45,7 +44,7 @@ final class NotifyOperationTargetReached implements ShouldQueue
     }
 
     /**
-     * @return Collection<int, Model>
+     * @return Collection<int, \Modules\Core\Models\User>
      */
     private function recipients(): Collection
     {

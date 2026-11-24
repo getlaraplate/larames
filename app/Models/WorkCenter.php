@@ -187,7 +187,8 @@ final class WorkCenter extends Model implements IActivatableModel
      */
     private function codeUniqueRule(): array
     {
-        if ($this->company_id === null) {
+        // Read through getAttribute(): the rule is built before the company is set on a new record.
+        if ($this->getAttribute('company_id') === null) {
             return [];
         }
 

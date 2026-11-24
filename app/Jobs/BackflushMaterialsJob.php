@@ -28,6 +28,8 @@ use Modules\MES\Services\ComponentReservationService;
  * routing operation — when this is the last operation of the order (decision
  * D5). The job is idempotent per (operation, item): a unique constraint and a
  * pre-check prevent double consumption on retry.
+ *
+ * @phpstan-import-type BomSnapshotLine from \Modules\MES\Models\ProductionOrder
  */
 final class BackflushMaterialsJob implements ShouldQueue
 {
@@ -75,7 +77,7 @@ final class BackflushMaterialsJob implements ShouldQueue
     }
 
     /**
-     * @param  array<string, mixed>  $line
+     * @param  BomSnapshotLine  $line
      */
     private function lineBelongsToOperation(array $line, ProductionOrderOperation $operation, int $last_sequence): bool
     {
@@ -97,7 +99,7 @@ final class BackflushMaterialsJob implements ShouldQueue
     }
 
     /**
-     * @param  array<string, mixed>  $line
+     * @param  BomSnapshotLine  $line
      */
     private function consume(
         StockMovementRecorder $recorder,

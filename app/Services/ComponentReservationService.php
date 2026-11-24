@@ -54,14 +54,14 @@ final readonly class ComponentReservationService
         with_company($company_id, function () use ($order, $company_id, $warehouse_id, $basis): void {
             foreach ($order->bom_snapshot['lines'] ?? [] as $line) {
                 $line_id = $line['material_line_id'] ?? null;
-                $item_id = $line['item_id'] ?? null;
+                $item_id = $line['item_id'];
 
-                if ($line_id === null || $item_id === null) {
+                if ($line_id === null) {
                     continue;
                 }
 
-                $required = Decimal::mul(Decimal::format((string) ($line['quantity'] ?? '0')), $basis);
-                $quantity = $this->min($required, $this->reservations->available($company_id, (int) $item_id));
+                $required = Decimal::mul(Decimal::format((string) $line['quantity']), $basis);
+                $quantity = $this->min($required, $this->reservations->available($company_id, $item_id));
 
                 if (Decimal::isZero($quantity) || Decimal::isNegative($quantity)) {
                     continue;
@@ -155,7 +155,7 @@ final readonly class ComponentReservationService
     {
         $value = $order->quantity_produced ?? $order->quantity_planned;
 
-        return Decimal::format((string) ($value ?? '0'));
+        return Decimal::format((string) $value);
     }
 
     /**
