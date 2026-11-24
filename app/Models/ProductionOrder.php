@@ -42,8 +42,18 @@ use Override;
  * @property \Carbon\CarbonImmutable $updated_at
  * @property \Carbon\CarbonImmutable|null $deleted_at
  * @property bool|null $is_deleted Whether the entity is deleted
- * @property array<array-key, mixed> $bom_snapshot
- * @property array<array-key, mixed> $routing_snapshot
+ * @property BomSnapshot $bom_snapshot
+ * @property RoutingSnapshot $routing_snapshot
+ *
+ * The frozen snapshots, as ProductionOrderService writes them. A json column: the top-level keys are read
+ * defensively, and so are the line keys the code reads with a default (rows written before a key existed,
+ * partial test fixtures); `item_id`, `quantity`, `work_center_id` and `sequence` are always written. `material_line_id` is
+ * stamped after insert (stampMaterialLineIds()).
+ *
+ * @phpstan-type BomSnapshotLine array{bom_line_id?: int, item_id: int, quantity: float, uom?: string, consumption_method?: string, routing_operation_id?: int|null, material_line_id?: int}
+ * @phpstan-type BomSnapshot array{id?: int|null, version?: string|null, lines?: list<BomSnapshotLine>}
+ * @phpstan-type RoutingSnapshotOperation array{routing_operation_id?: int, work_center_id: int, sequence: int, description?: string, setup_time_minutes?: int, cycle_time_minutes?: float, is_parallel?: bool}
+ * @phpstan-type RoutingSnapshot array{id?: int|null, version?: string|null, operations?: list<RoutingSnapshotOperation>}
  */
 final class ProductionOrder extends Model
 {

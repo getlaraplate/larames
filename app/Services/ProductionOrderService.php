@@ -28,6 +28,9 @@ use Modules\MES\Models\RoutingOperation;
  * number, immutable freezing of the effective BOM and routing snapshots, and
  * the draft -> released -> completed / cancelled state transitions. Releasing
  * also plans the generated operations on their work center calendars.
+ *
+ * @phpstan-import-type BomSnapshotLine from \Modules\MES\Models\ProductionOrder
+ * @phpstan-import-type RoutingSnapshotOperation from \Modules\MES\Models\ProductionOrder
  */
 final class ProductionOrderService
 {
@@ -201,7 +204,7 @@ final class ProductionOrderService
      * Freeze the item's active BOM direct lines into an immutable snapshot.
      * Quantities are per finished unit; consumers scale by produced quantity.
      *
-     * @return array{id: int|null, version: string|null, lines: list<array<string, mixed>>}
+     * @return array{id: int|null, version: string|null, lines: list<BomSnapshotLine>}
      */
     private function buildBomSnapshot(int $item_id, CarbonInterface $on_date): array
     {
@@ -211,14 +214,14 @@ final class ProductionOrderService
             return ['id' => null, 'version' => null, 'lines' => []];
         }
 
-        $lines = $bom->bomLines->map(static fn (BomLine $line): array => [
+        $lines = array_values($bom->bomLines->map(static fn (BomLine $line): array => [
             'bom_line_id' => $line->id,
             'item_id' => $line->item_id,
             'quantity' => (float) $line->quantity,
             'uom' => $line->uom,
             'consumption_method' => $line->consumption_method->value,
             'routing_operation_id' => $line->routing_operation_id,
-        ])->all();
+        ])->all());
 
         return ['id' => $bom->id, 'version' => $bom->version, 'lines' => $lines];
     }
@@ -226,7 +229,7 @@ final class ProductionOrderService
     /**
      * Freeze the item's active routing operations into an immutable snapshot.
      *
-     * @return array{id: int|null, version: string|null, operations: list<array<string, mixed>>}
+     * @return array{id: int|null, version: string|null, operations: list<RoutingSnapshotOperation>}
      */
     private function buildRoutingSnapshot(int $item_id, CarbonInterface $on_date): array
     {
@@ -236,7 +239,7 @@ final class ProductionOrderService
             return ['id' => null, 'version' => null, 'operations' => []];
         }
 
-        $operations = $routing->routingOperations->map(static fn (RoutingOperation $operation): array => [
+        $operations = array_values($routing->routingOperations->map(static fn (RoutingOperation $operation): array => [
             'routing_operation_id' => $operation->id,
             'work_center_id' => $operation->work_center_id,
             'sequence' => $operation->sequence,
@@ -244,7 +247,7 @@ final class ProductionOrderService
             'setup_time_minutes' => $operation->setup_time_minutes,
             'cycle_time_minutes' => (float) $operation->cycle_time_minutes,
             'is_parallel' => $operation->is_parallel,
-        ])->all();
+        ])->all());
 
         return ['id' => $routing->id, 'version' => $routing->version, 'operations' => $operations];
     }

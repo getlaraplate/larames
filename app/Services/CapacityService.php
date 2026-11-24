@@ -94,7 +94,7 @@ final class CapacityService
         if ($remaining->isEmpty()) {
             $last_end = $operations->max('actual_end_at');
 
-            return Carbon::parse($last_end ?? $order->planned_end_at);
+            return Carbon::parse($last_end instanceof DateTimeInterface ? $last_end : $order->planned_end_at);
         }
 
         $from = CarbonImmutable::instance($order->planned_start_at)->max(CarbonImmutable::now());

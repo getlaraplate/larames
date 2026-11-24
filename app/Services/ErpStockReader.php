@@ -35,7 +35,7 @@ final readonly class ErpStockReader implements StockReader
             ->value('quantity');
 
         $available = Decimal::sub(
-            Decimal::format((string) ($on_hand ?? '0')),
+            Decimal::format(is_numeric($on_hand) ? (string) $on_hand : '0'),
             $this->reservedForWarehouse($item_id, $warehouse_id, $company_id),
         );
 
@@ -65,7 +65,7 @@ final readonly class ErpStockReader implements StockReader
             ->pluck('quantity');
 
         foreach ($quantities as $quantity) {
-            $total = Decimal::add($total, Decimal::format((string) $quantity));
+            $total = Decimal::add($total, Decimal::format(is_numeric($quantity) ? (string) $quantity : '0'));
         }
 
         return $total;
@@ -91,7 +91,7 @@ final readonly class ErpStockReader implements StockReader
             ->pluck('quantity');
 
         foreach ($quantities as $quantity) {
-            $total = Decimal::add($total, Decimal::format((string) $quantity));
+            $total = Decimal::add($total, Decimal::format(is_numeric($quantity) ? (string) $quantity : '0'));
         }
 
         return $total;
