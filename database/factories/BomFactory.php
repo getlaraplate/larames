@@ -22,7 +22,7 @@ final class BomFactory extends Factory
     protected $model = Bom::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<Bom>, mixed>
      */
     #[Override]
     public function definition(): array

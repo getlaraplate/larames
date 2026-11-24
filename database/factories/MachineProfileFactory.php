@@ -22,7 +22,7 @@ final class MachineProfileFactory extends Factory
     protected $model = MachineProfile::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineProfile>, mixed>
      */
     #[Override]
     public function definition(): array

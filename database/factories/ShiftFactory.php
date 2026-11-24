@@ -21,7 +21,7 @@ final class ShiftFactory extends Factory
     protected $model = Shift::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<Shift>, mixed>
      */
     #[Override]
     public function definition(): array

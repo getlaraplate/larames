@@ -23,7 +23,7 @@ final class MachineSourceFactory extends Factory
     protected $model = MachineSource::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineSource>, mixed>
      */
     #[Override]
     public function definition(): array

@@ -24,7 +24,7 @@ final class MachineIncidentFactory extends Factory
     protected $model = MachineIncident::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineIncident>, mixed>
      */
     #[Override]
     public function definition(): array

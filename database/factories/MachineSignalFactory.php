@@ -24,7 +24,7 @@ final class MachineSignalFactory extends Factory
     protected $model = MachineSignal::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineSignal>, mixed>
      */
     #[Override]
     public function definition(): array

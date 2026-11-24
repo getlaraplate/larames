@@ -22,7 +22,7 @@ final class LotNumberFactory extends Factory
     protected $model = LotNumber::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<LotNumber>, mixed>
      */
     #[Override]
     public function definition(): array

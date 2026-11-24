@@ -24,7 +24,7 @@ final class MachineDeviceFactory extends Factory
     protected $model = MachineDevice::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineDevice>, mixed>
      */
     #[Override]
     public function definition(): array

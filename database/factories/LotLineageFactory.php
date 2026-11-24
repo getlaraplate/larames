@@ -20,7 +20,7 @@ final class LotLineageFactory extends Factory
     protected $model = LotLineage::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<LotLineage>, mixed>
      */
     #[Override]
     public function definition(): array

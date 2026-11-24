@@ -26,7 +26,7 @@ final class UnattributedMeasurementFactory extends Factory
     protected $model = UnattributedMeasurement::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<UnattributedMeasurement>, mixed>
      */
     #[Override]
     public function definition(): array

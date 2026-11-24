@@ -21,7 +21,7 @@ final class OperatorLogFactory extends Factory
     protected $model = OperatorLog::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<OperatorLog>, mixed>
      */
     #[Override]
     public function definition(): array

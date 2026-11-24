@@ -23,7 +23,7 @@ final class SparkplugAliasFactory extends Factory
     protected $model = SparkplugAlias::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<SparkplugAlias>, mixed>
      */
     #[Override]
     public function definition(): array

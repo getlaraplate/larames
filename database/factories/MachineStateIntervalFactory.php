@@ -24,7 +24,7 @@ final class MachineStateIntervalFactory extends Factory
     protected $model = MachineStateInterval::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<MachineStateInterval>, mixed>
      */
     #[Override]
     public function definition(): array

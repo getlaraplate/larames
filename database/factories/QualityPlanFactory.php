@@ -21,7 +21,7 @@ final class QualityPlanFactory extends Factory
     protected $model = QualityPlan::class;
 
     /**
-     * @return array<string, mixed>
+     * @return array<model-property<QualityPlan>, mixed>
      */
     #[Override]
     public function definition(): array
