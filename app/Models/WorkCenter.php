@@ -16,8 +16,8 @@ use Modules\Core\Overrides\Model;
 use Modules\ERP\Concerns\BelongsToCompany;
 use Modules\ERP\Enums\ERPTables;
 use Modules\MES\Database\Factories\WorkCenterFactory;
-use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\MachineState;
+use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\WorkCenterType;
 use Override;
 
@@ -110,16 +110,6 @@ final class WorkCenter extends Model implements IActivatableModel
     }
 
     /**
-     * Create a new factory instance for the model.
-     *
-     * @return Factory<WorkCenter>
-     */
-    protected static function newFactory(): Factory
-    {
-        return WorkCenterFactory::new();
-    }
-
-    /**
      * Whether a stop in this state, lasting longer than the micro-stop threshold, is a downtime.
      * A work center stored without a list uses the default four states.
      */
@@ -132,6 +122,16 @@ final class WorkCenter extends Model implements IActivatableModel
         $states = is_array($this->downtime_states) && $this->downtime_states !== [] ? $this->downtime_states : ['fault', 'stopped', 'setup', 'maintenance'];
 
         return in_array($state->value, $states, true);
+    }
+
+    /**
+     * Create a new factory instance for the model.
+     *
+     * @return Factory<WorkCenter>
+     */
+    protected static function newFactory(): Factory
+    {
+        return WorkCenterFactory::new();
     }
 
     /**
