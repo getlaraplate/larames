@@ -27,6 +27,8 @@ use Override;
  * @property int $out_of_range_count
  * @property \Illuminate\Support\Carbon $first_ts
  * @property \Illuminate\Support\Carbon $last_ts
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class OperationProcessSummary extends Model
 {

@@ -25,6 +25,23 @@ use Override;
  * @property int $id
  * @property int $company_id
  * @property string $number
+ * @property int $item_id
+ * @property numeric-string $quantity_planned
+ * @property numeric-string|null $quantity_produced
+ * @property numeric-string|null $quantity_scrapped
+ * @property string $uom
+ * @property ProductionOrderStatus $status
+ * @property \Carbon\CarbonImmutable $planned_start_at
+ * @property \Carbon\CarbonImmutable $planned_end_at
+ * @property \Carbon\CarbonImmutable|null $actual_start_at
+ * @property \Carbon\CarbonImmutable|null $actual_end_at
+ * @property int $warehouse_id
+ * @property int|null $sales_order_id
+ * @property int|null $sales_order_line_id
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
  */
 final class ProductionOrder extends Model
 {

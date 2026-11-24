@@ -16,6 +16,16 @@ use Modules\MES\Database\Factories\RoutingOperationFactory;
 use Modules\MES\Enums\MESTables;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $routing_id
+ * @property int $work_center_id
+ * @property int $sequence
+ * @property string $description
+ * @property int $setup_time_minutes
+ * @property numeric-string $cycle_time_minutes
+ * @property bool $is_parallel
+ */
 final class RoutingOperation extends Model implements IsPartOfParent
 {
     use HasFactory;

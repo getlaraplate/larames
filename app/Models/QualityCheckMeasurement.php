@@ -26,6 +26,8 @@ use Override;
  * @property \Illuminate\Support\Carbon|null $measured_at
  * @property string $source
  * @property int|null $machine_signal_id
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
  */
 final class QualityCheckMeasurement extends Model implements IsPartOfParent
 {

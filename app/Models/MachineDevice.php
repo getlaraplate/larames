@@ -27,6 +27,10 @@ use Override;
  * @property ?string $profile_version
  * @property ?\Illuminate\Support\Carbon $last_seen_at
  * @property bool $is_active
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
  */
 final class MachineDevice extends Model
 {

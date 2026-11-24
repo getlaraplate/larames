@@ -12,6 +12,16 @@ use Modules\MES\Database\Factories\OperatorLogFactory;
 use Modules\MES\Enums\OperatorLogAction;
 use Override;
 
+/**
+ * @property int $id
+ * @property int|null $user_id
+ * @property int|null $production_order_operation_id
+ * @property int|null $shift_instance_id
+ * @property OperatorLogAction $action
+ * @property \Carbon\CarbonImmutable $logged_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class OperatorLog extends Model
 {
     use HasFactory;

@@ -21,6 +21,21 @@ use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\WorkCenterType;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $company_id
+ * @property string $code
+ * @property string $name
+ * @property WorkCenterType $type
+ * @property numeric-string $capacity_per_hour
+ * @property string $capacity_uom
+ * @property bool $is_active
+ * @property int $micro_stop_threshold_seconds
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
+ * @property \Carbon\CarbonImmutable|null $deleted_at
+ * @property bool|null $is_deleted Whether the entity is deleted
+ */
 final class WorkCenter extends Model implements IActivatableModel
 {
     use BelongsToCompany, HasActivation;

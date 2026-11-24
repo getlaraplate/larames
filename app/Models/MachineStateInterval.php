@@ -28,6 +28,8 @@ use Override;
  * @property string|null $alarm_code
  * @property \Illuminate\Support\Carbon $started_at
  * @property \Illuminate\Support\Carbon|null $ended_at
+ * @property \Carbon\CarbonImmutable $created_at
+ * @property \Carbon\CarbonImmutable $updated_at
  */
 final class MachineStateInterval extends Model implements IsPartOfParent
 {

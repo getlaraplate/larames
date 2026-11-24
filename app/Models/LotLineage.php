@@ -12,6 +12,15 @@ use Modules\Core\Contracts\IsPartOfParent;
 use Modules\MES\Database\Factories\LotLineageFactory;
 use Override;
 
+/**
+ * @property int $id
+ * @property int $parent_lot_id
+ * @property int $child_lot_id
+ * @property int|null $production_order_id
+ * @property numeric-string|null $quantity
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
+ */
 final class LotLineage extends Model implements IsPartOfParent
 {
     use HasFactory;

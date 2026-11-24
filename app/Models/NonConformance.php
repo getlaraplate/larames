@@ -24,6 +24,10 @@ use Override;
  * @property NonConformanceStatus $status
  * @property string $quantity
  * @property string $description
+ * @property NonConformanceDisposition|null $disposition
+ * @property \Carbon\CarbonImmutable|null $resolved_at
+ * @property \Carbon\CarbonImmutable|null $created_at
+ * @property \Carbon\CarbonImmutable|null $updated_at
  */
 final class NonConformance extends Model
 {
