@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Modules\MES\Services;
 
 use DomainException;
-use LogicException;
 use Illuminate\Support\Collection;
+use LogicException;
 use Modules\MES\Data\WorkCenterKpis;
 use Modules\MES\Enums\OperatorLogAction;
 use Modules\MES\Enums\ProductionOrderOperationStatus;
