@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Validation\Rule;
 use Modules\Core\Contracts\IsPartOfParent;
+use Modules\Core\Contracts\IVersionedModel;
 use Modules\Core\Models\Concerns\HasPrefixedTableName;
 use Modules\Core\Models\Concerns\HasValidations;
 use Modules\Core\Models\Concerns\HasVersions;
@@ -30,7 +31,7 @@ use Override;
  * @property int|null $routing_operation_id
  * @property int $sort_order
  */
-final class BomLine extends Model implements IsPartOfParent
+final class BomLine extends Model implements IsPartOfParent, IVersionedModel
 {
     use HasFactory;
     use HasPrefixedTableName;
