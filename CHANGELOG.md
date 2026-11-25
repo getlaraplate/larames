@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-11-25
+
+### 🚀 Features
+
+- *(models)* BomLine and RoutingOperation implement IVersionedModel
+
+### 🐛 Bug Fixes
+
+- *(mes)* The sequence guard closure takes the query builder it is given
+- *(phpstan)* Correct four MES types
+- *(phpstan)* Type the production order snapshots, clear MES's backlog
+- *(mes)* Type the machine count column and the declared prefill
+
+### 📚 Documentation
+
+- *(models)* Every model declares its columns as @property tags
+- *(models)* Declare the json and array columns too
+- *(models)* Declare translated and proxied attributes, and type factory keys
+
+### 🎨 Styling
+
+- *(mes)* Declare the types pest type-coverage was missing
+- Apply Pint to the models whose columns are declared next
+- Apply Pint to the files this change touches
+
 ## [1.3.0] - 2026-11-18
 
 ### 🚀 Features
