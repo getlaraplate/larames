@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Core\Contracts\IsPartOfParent;
+use Modules\Core\Contracts\IVersionedModel;
 use Modules\Core\Models\Concerns\HasPrefixedTableName;
 use Modules\Core\Models\Concerns\HasValidations;
 use Modules\Core\Models\Concerns\HasVersions;
@@ -26,7 +27,7 @@ use Override;
  * @property numeric-string $cycle_time_minutes
  * @property bool $is_parallel
  */
-final class RoutingOperation extends Model implements IsPartOfParent
+final class RoutingOperation extends Model implements IsPartOfParent, IVersionedModel
 {
     use HasFactory;
     use HasPrefixedTableName;
