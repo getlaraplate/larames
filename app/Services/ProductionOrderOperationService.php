@@ -167,7 +167,7 @@ final class ProductionOrderOperationService
      * What the machine counted becomes the starting point of the declared quantities, which the operator may
      * correct afterwards (see {@see OperationQuantityDeclarer}). Quantities already declared are kept.
      *
-     * @return array<string, float>
+     * @return array{declared_good_quantity?: float, declared_scrap_quantity?: float}
      */
     private function declaredPrefill(ProductionOrderOperation $operation): array
     {

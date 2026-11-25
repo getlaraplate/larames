@@ -110,6 +110,11 @@ final class PartsCountRecorder
         });
     }
 
+    /**
+     * The machine count column a counter signal feeds, null for a signal that counts nothing.
+     *
+     * @return 'good'|'scrap'|'total'|null
+     */
     private function columnOf(SignalRole $role): ?string
     {
         return match ($role) {
