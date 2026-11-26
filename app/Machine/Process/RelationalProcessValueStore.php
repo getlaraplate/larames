@@ -302,7 +302,7 @@ final class RelationalProcessValueStore implements ProcessValueStore
         $hour_minutes = $minutes();
         $grammar = $hour_minutes->getGrammar();
         $stats = $hour_minutes->selectRaw(sprintf(
-            'MIN(%s) as min_value, MAX(%s) as max_value, SUM(%3$s) as samples, SUM(%4$s * %3$s) as weighted',
+            'MIN(%1$s) as min_value, MAX(%2$s) as max_value, SUM(%3$s) as samples, SUM(%4$s * %3$s) as weighted',
             $grammar->wrap('min'),
             $grammar->wrap('max'),
             $grammar->wrap('count'),
