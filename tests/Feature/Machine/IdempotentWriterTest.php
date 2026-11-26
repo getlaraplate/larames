@@ -11,7 +11,7 @@ use Modules\MES\Models\MachineMessage;
 use Modules\MES\Models\MachineSource;
 use Modules\MES\Tests\Support\MesTestHelpers;
 
-uses(RefreshDatabase::class);
+uses(RefreshDatabase::class)->group('db2');
 
 it('stores a row once and reports a repeat as already stored', function (): void {
     MesTestHelpers::makeCompany();
