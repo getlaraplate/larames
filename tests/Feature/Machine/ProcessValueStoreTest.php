@@ -6,10 +6,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Modules\Core\Tests\Stubs\Database\Db2PretendConnection;
 use Modules\MES\Enums\SampleQuality;
 use Modules\MES\Enums\SignalRole;
 use Modules\MES\Machine\Process\ProcessSample as ProcessSampleData;
 use Modules\MES\Machine\Process\ProcessValueStore;
+use Modules\MES\Machine\Process\RelationalProcessValueStore;
 use Modules\MES\Models\MachineDevice;
 use Modules\MES\Models\MachineSignal;
 use Modules\MES\Models\ProcessAggregate;
@@ -238,4 +240,18 @@ it('rebuilds the minute that sits exactly at the raw retention limit, whatever t
     ProcessSample::query()->update(['ts' => '2026-10-04 12:00:10.000']);
 
     expect(store()->rollup())->toBe(1);
+});
+
+it('quotes the reserved value, min, max, avg and count columns in its statistics on Db2', function (): void {
+    $sql = Db2PretendConnection::capture(static function (): void {
+        $store = resolve(RelationalProcessValueStore::class);
+
+        expect($store->operationStatistics(1, []))->toBe([]);
+        (new ReflectionMethod($store, 'rebuildHour'))->invoke($store, 1, 1, '2026-10-05 08:00:00');
+    });
+    $all = implode("\n", $sql);
+
+    expect($all)->toContain('MIN("VALUE") as min_value, MAX("VALUE") as max_value, AVG("VALUE") as avg_value, COUNT(*) as samples')
+        ->and($all)->toContain('MIN("MIN") as min_value, MAX("MAX") as max_value, SUM("COUNT") as samples, SUM("AVG" * "COUNT") as weighted')
+        ->and($all)->not->toContain('(value)');
 });

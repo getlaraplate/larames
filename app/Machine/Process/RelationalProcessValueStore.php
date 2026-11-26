@@ -5,16 +5,18 @@ declare(strict_types=1);
 namespace Modules\MES\Machine\Process;
 
 use Carbon\CarbonImmutable;
+use Closure;
 use DateTimeInterface;
+use Illuminate\Database\Connection;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Carbon;
-use Illuminate\Database\Connection;
 use Modules\MES\Enums\MESTables;
 use Modules\MES\Enums\SampleQuality;
 use Modules\MES\Machine\States\MachineTime;
 use Modules\MES\Machine\Support\IdempotentWriter;
 use Modules\MES\Models\ProcessAggregate;
 use Modules\MES\Models\ProcessSample as ProcessSampleRow;
+use Override;
 
 /**
  * The default process value store: raw samples and aggregates in the application database.
@@ -33,7 +35,7 @@ final class RelationalProcessValueStore implements ProcessValueStore
         private readonly IdempotentWriter $writer,
     ) {}
 
-    #[\Override]
+    #[Override]
     public function write(array $samples): int
     {
         if ($samples === []) {
@@ -74,7 +76,7 @@ final class RelationalProcessValueStore implements ProcessValueStore
         return $stored;
     }
 
-    #[\Override]
+    #[Override]
     public function aggregates(int $signal_id, DateTimeInterface $from, DateTimeInterface $to, string $resolution): array
     {
         $rows = ProcessAggregate::query()
@@ -99,7 +101,7 @@ final class RelationalProcessValueStore implements ProcessValueStore
         ))->all());
     }
 
-    #[\Override]
+    #[Override]
     public function rollup(int $limit = 500): int
     {
         // The marks are claimed (read and deleted) before the buckets are rebuilt, all in one transaction: a sample
@@ -140,13 +142,13 @@ final class RelationalProcessValueStore implements ProcessValueStore
         });
     }
 
-    #[\Override]
+    #[Override]
     public function hasPendingRollup(): bool
     {
         return $this->db()->table(MESTables::ProcessDirtyBuckets->value)->exists();
     }
 
-    #[\Override]
+    #[Override]
     public function prune(DateTimeInterface $before): int
     {
         $limit = MachineTime::db(Carbon::parse($before));
@@ -154,7 +156,7 @@ final class RelationalProcessValueStore implements ProcessValueStore
         return $this->deleteInChunks(fn (): Builder => $this->samples()->where('ts', '<', $limit));
     }
 
-    #[\Override]
+    #[Override]
     public function pruneAggregates(DateTimeInterface $before): int
     {
         $limit = MachineTime::db(Carbon::parse($before));
@@ -162,42 +164,16 @@ final class RelationalProcessValueStore implements ProcessValueStore
         return $this->deleteInChunks(fn (): Builder => $this->aggregateRows()->where('resolution', '1m')->where('bucket_start', '<', $limit));
     }
 
-    /**
-     * Deletes the rows a query matches a chunk at a time, so one statement never locks millions of rows (and stays
-     * under the parameter limit of the strictest driver).
-     *
-     * @param  \Closure(): Builder  $matching
-     */
-    private function deleteInChunks(\Closure $matching): int
-    {
-        $deleted = 0;
-
-        do {
-            $ids = $matching()->orderBy('id')->limit(self::PRUNE_CHUNK)->pluck('id')->all();
-
-            if ($ids === []) {
-                break;
-            }
-
-            $deleted += $matching()->whereIn('id', $ids)->delete();
-        } while (count($ids) === self::PRUNE_CHUNK);
-
-        return $deleted;
-    }
-
-    private function db(): Connection
-    {
-        return (new ProcessSampleRow())->getConnection();
-    }
-
-    #[\Override]
+    #[Override]
     public function operationStatistics(int $operation_id, array $ranges): array
     {
-        $rows = $this->samples()
+        $query = $this->samples();
+        $rows = $query
             ->where('production_order_operation_id', $operation_id)
             ->where('quality', '!=', SampleQuality::Bad->value)
             ->groupBy('signal_id')
-            ->selectRaw('signal_id, MIN(value) as min_value, MAX(value) as max_value, AVG(value) as avg_value, COUNT(*) as samples, MIN(ts) as first_ts, MAX(ts) as last_ts')
+            ->select('signal_id')
+            ->selectRaw(self::sampleStatistics($query) . ', MIN(ts) as first_ts, MAX(ts) as last_ts')
             ->orderBy('signal_id')
             ->get();
 
@@ -218,6 +194,46 @@ final class RelationalProcessValueStore implements ProcessValueStore
         }
 
         return $statistics;
+    }
+
+    /**
+     * The statistics of a set of raw samples. `value` is a reserved word on Db2, so it goes through the grammar, as
+     * the aggregate columns `min`, `max`, `avg` and `count` do in {@see self::rebuildHour()}.
+     */
+    private static function sampleStatistics(Builder $query): string
+    {
+        return sprintf(
+            'MIN(%1$s) as min_value, MAX(%1$s) as max_value, AVG(%1$s) as avg_value, COUNT(*) as samples',
+            $query->getGrammar()->wrap('value'),
+        );
+    }
+
+    /**
+     * Deletes the rows a query matches a chunk at a time, so one statement never locks millions of rows (and stays
+     * under the parameter limit of the strictest driver).
+     *
+     * @param  Closure(): Builder  $matching
+     */
+    private function deleteInChunks(Closure $matching): int
+    {
+        $deleted = 0;
+
+        do {
+            $ids = $matching()->orderBy('id')->limit(self::PRUNE_CHUNK)->pluck('id')->all();
+
+            if ($ids === []) {
+                break;
+            }
+
+            $deleted += $matching()->whereIn('id', $ids)->delete();
+        } while (count($ids) === self::PRUNE_CHUNK);
+
+        return $deleted;
+    }
+
+    private function db(): Connection
+    {
+        return (new ProcessSampleRow())->getConnection();
     }
 
     /**
@@ -259,7 +275,8 @@ final class RelationalProcessValueStore implements ProcessValueStore
             return false;
         }
 
-        $stats = $minute()->where('quality', '!=', SampleQuality::Bad->value)->selectRaw('MIN(value) as min_value, MAX(value) as max_value, AVG(value) as avg_value, COUNT(*) as samples')->first();
+        $good = $minute()->where('quality', '!=', SampleQuality::Bad->value);
+        $stats = $good->selectRaw(self::sampleStatistics($good))->first();
 
         if ($stats === null || (int) $this->number($stats->samples) === 0) {
             $this->aggregateRows()->where('signal_id', $signal_id)->where('resolution', '1m')->where('bucket_start', $bucket)->delete();
@@ -282,7 +299,15 @@ final class RelationalProcessValueStore implements ProcessValueStore
         $end = $this->moment($hour)->addHour()->format('Y-m-d H:i:s.v');
         $minutes = fn (): Builder => $this->aggregateRows()->where('signal_id', $signal_id)->where('resolution', '1m')->where('bucket_start', '>=', $hour)->where('bucket_start', '<', $end);
 
-        $stats = $minutes()->selectRaw('MIN(min) as min_value, MAX(max) as max_value, SUM(count) as samples, SUM(avg * count) as weighted')->first();
+        $hour_minutes = $minutes();
+        $grammar = $hour_minutes->getGrammar();
+        $stats = $hour_minutes->selectRaw(sprintf(
+            'MIN(%s) as min_value, MAX(%s) as max_value, SUM(%3$s) as samples, SUM(%4$s * %3$s) as weighted',
+            $grammar->wrap('min'),
+            $grammar->wrap('max'),
+            $grammar->wrap('count'),
+            $grammar->wrap('avg'),
+        ))->first();
         $samples = $stats === null ? 0 : (int) $this->number($stats->samples);
 
         if ($stats === null || $samples === 0) {
