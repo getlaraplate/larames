@@ -67,6 +67,17 @@ it('does not use insert-or-ignore on SQL Server, whose grammar lacks it', functi
     expect(new IdempotentWriter()->insert($connection, 't', ['a' => 1]))->toBeFalse();
 });
 
+it('takes the per-row fallback on Db2', function (): void {
+    $builder = Mockery::mock(Builder::class);
+    $builder->shouldReceive('insert')->once()->andThrow(new UniqueConstraintViolationException('db2_ibmi_odbc', 'insert', [], new Exception('SQL0803')));
+    $builder->shouldNotReceive('insertOrIgnore');
+    $connection = Mockery::mock(Connection::class);
+    $connection->shouldReceive('getDriverName')->andReturn('db2_ibmi_odbc');
+    $connection->shouldReceive('table')->with('t')->andReturn($builder);
+
+    expect(new IdempotentWriter()->insert($connection, 't', ['a' => 1]))->toBeFalse();
+});
+
 it('stores many rows in one go, skips the ones already stored and reports how many were new', function (): void {
     MesTestHelpers::makeCompany();
     $source = MachineSource::factory()->create();

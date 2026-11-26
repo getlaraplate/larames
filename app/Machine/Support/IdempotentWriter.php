@@ -10,7 +10,7 @@ use Illuminate\Database\UniqueConstraintViolationException;
 /**
  * Writes a row only when its unique keys are free, on every supported driver. MySQL, MariaDB,
  * PostgreSQL and SQLite have insert-or-ignore (Laravel's SQL Server grammar does not); any other
- * driver (SQL Server, Oracle) inserts and treats a unique-key violation as "already stored". The
+ * driver (SQL Server, Oracle, Db2) inserts and treats a unique-key violation as "already stored". The
  * violation is not caught on the first group: on PostgreSQL it would abort the surrounding transaction.
  */
 final class IdempotentWriter
